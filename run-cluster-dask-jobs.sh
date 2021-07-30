@@ -3,10 +3,14 @@
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:=$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
+# FIXME: do not hardcode module load calls.
 module load cuda/11.0.3
 activateCondaEnv
 
 RUN_SCHEDULER=0
+
+# FIXME: this should not be slurm-specific. Consider a wrapper that
+# calls this script for slurm custers.
 
 # Assumption is that this script is called from a multi-node sbatch
 # run via srun, with one task per node.  Use SLURM_NODEID 1 for the

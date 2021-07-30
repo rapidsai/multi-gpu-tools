@@ -47,9 +47,11 @@ RUN_DASK_CLUSTER_PID=""
 cd $TESTING_DIR
 export RAPIDS_DATASET_ROOT_DIR=$DATASETS_DIR
 
+# FIXME: change or make the test glob a variable or parameter since
+# this is cugraph-specific.
 for test_file in tests/dask/test_mg_*.py; do
 
-    # FIXME: fix these tests so they dont have to be skipped
+    # FIXME: remove this special case, it is cugraph-specific
     if (echo $test_file | grep -q "betweenness_centrality\|replication"); then
 	logger "SKIPPING $test_file"
 	continue

@@ -32,8 +32,6 @@ PROJECT_CHANNEL=""
 PROJECT_REPO_URL=""
 PROJECT_REPO_BRANCH=""
 
-# FIXME: this is a crude way to determine if the build was from-source
-# or from conda.
 if hasArg --from-conda; then
     # FIXME: do not hardcode this module load
     module load cuda/11.0.3
