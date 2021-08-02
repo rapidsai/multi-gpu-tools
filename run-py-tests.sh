@@ -1,6 +1,18 @@
 #!/bin/bash
+# Copyright (c) 2021, NVIDIA CORPORATION.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:=$(cd $(dirname $0); pwd)}
+RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 module load cuda/11.0.3
@@ -78,7 +90,7 @@ for test_file in tests/dask/test_mg_*.py; do
         # srun runs a task per node by default
         srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
         RUN_DASK_CLUSTER_PID=$!
-        python ${SCRIPTS_DIR}/wait_for_workers.py $NUM_GPUS $SCHEDULER_FILE
+        python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE --timeout-after=120
     else
 	export CUDA_VISIBLE_DEVICES=$ALL_GPU_IDS
 	logger "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
