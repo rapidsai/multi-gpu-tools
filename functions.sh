@@ -88,7 +88,7 @@ function getNonLinkedFileName {
     fi
 }
 
-function waitForSlurmJobs {
+function waitForSlurmJobsToComplete {
     ids=$*
     jobs=$(python -c "print(\",\".join(\"$ids\".split()))") # make a comma-separated list
     jobsInQueue=$(squeue --noheader --jobs=$jobs)
