@@ -22,14 +22,12 @@ file: `/my/project/myscript.sh`:
 ```
 # PROJECT_DIR will default to /my/project but can be overridden by the environment
 export PROJECT_DIR=${PROJECT_DIR:-$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)}
-for envfile in ${RAPIDS_MG_TOOLS_DIR}/script-env.sh $(which script-env.sh); do
-    if [ -e $envfile ]; then
-       source $envfile
-       break
-    fi
-done
-if ! [ -e $envfile ]; then
-    echo "Error: \$RAPIDS_MG_TOOLS_DIR/script-env.sh was not found nor was script-env.sh in PATH."
+if [ -n "$RAPIDS_MG_TOOLS_DIR" ]; then
+    source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
+elif [ -n "$(which script-env.sh)" ]; then
+    source $(which script-env.sh)
+else
+    echo "Error: \$RAPIDS_MG_TOOLS_DIR/script-env.sh could not be read nor was script-env.sh in PATH."
     exit 1
 fi
 ```
