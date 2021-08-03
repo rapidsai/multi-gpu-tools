@@ -17,6 +17,35 @@ source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 ALL_REPORTS=$(ls ${RESULTS_DIR}/pytest-results-*.txt 2> /dev/null)
 
+# Create the html describing the build and test run
+REPORT_METADATA_HTML=""
+PROJECT_VERSION="unknown"
+PROJECT_BUILD=""
+PROJECT_CHANNEL="unknown"
+PROJECT_REPO_URL="unknown"
+PROJECT_REPO_BRANCH="unknown"
+if [ -f $METADATA_FILE ]; then
+    source $METADATA_FILE
+fi
+# Assume if PROJECT_BUILD is set then a conda version string should be
+# created, else a git version string.
+if [[ "$PROJECT_BUILD" != "" ]]; then
+    REPORT_METADATA_HTML="<table>
+   <tr><td>conda version</td><td>$PROJECT_VERSION</td></tr>
+   <tr><td>build</td><td>$PROJECT_BUILD</td></tr>
+   <tr><td>channel</td><td>$PROJECT_CHANNEL</td></tr>
+</table>
+<br>"
+else
+    REPORT_METADATA_HTML="<table>
+   <tr><td>commit hash</td><td>$PROJECT_VERSION</td></tr>
+   <tr><td>repo</td><td>$PROJECT_REPO_URL</td></tr>
+   <tr><td>branch</td><td>$PROJECT_REPO_BRANCH</td></tr>
+</table>
+<br>"
+fi
+
+
 ################################################################################
 # create the html reports for each individual run (each
 # pytest-results*.txt file)
@@ -30,12 +59,13 @@ if [ "$ALL_REPORTS" != "" ]; then
    <title>${report_name}</title>
 </head>
 <body>
-<h1>${report_name}</h1><br>
-<table style=\"width:100%\">
+<h1>${report_name}</h1><br>" > $html
+	echo "$REPORT_METADATA_HTML" >> $html
+	echo "<table style=\"width:100%\">
    <tr>
       <th>test file</th><th>status</th><th>logs</th>
    </tr>
-" > $html
+" >> $html
         awk '{ if($2 == "FAILED") {
                   color = "red"
               } else {
@@ -79,6 +109,7 @@ echo "<!doctype html>
 </head>
 <body>
 " > $report
+echo "$REPORT_METADATA_HTML" >> $report
 echo "<img src=\"${STATUS_IMG}\" alt=\"${STATUS}\"/> Overall status: $STATUS<br>" >> $report
 echo "Build: ${BUILD_STATUS} ${BUILD_LOG_HTML}<br>" >> $report
 if [ "$ALL_REPORTS" != "" ]; then
