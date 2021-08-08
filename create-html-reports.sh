@@ -15,6 +15,7 @@
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
+# FIXME: this assumes all reports are from running pytests
 ALL_REPORTS=$(ls ${RESULTS_DIR}/pytest-results-*.txt 2> /dev/null)
 
 # Create the html describing the build and test run
@@ -81,6 +82,35 @@ if [ "$ALL_REPORTS" != "" ]; then
 fi
 
 ################################################################################
+# Create a .html file for each *_log.txt file, which is just the contents
+# of the log with a line number and anchor id for each line that can
+# be used for sharing links to lines.
+ALL_LOGS=$(find -L $RESULTS_DIR -type f -name "*_log.txt" -print)
+
+for f in $ALL_LOGS; do
+    b=$(basename ${f: 0:-4})
+    html=$(echo $f | sed 's/.txt$/.html/')
+    echo "<!doctype html>
+<html>
+<head>
+   <title>$b</title>
+<style>
+pre {
+    display: inline;
+    margin: 0;
+}
+</style>
+</head>
+<body>
+<h1>${b}</h1><br>
+" > $html
+    awk '{ print "<a id=\""NR"\" href=\"#"NR"\">"NR"</a>: <pre>"$0"</pre><br>"}' $f >> $html
+    echo "</body>
+</html>
+" >> $html
+done
+
+################################################################################
 # create the top-level report
 STATUS='FAILED'
 STATUS_IMG='https://img.icons8.com/cotton/80/000000/cancel--v1.png'
@@ -93,7 +123,11 @@ fi
 BUILD_LOG_HTML="(build log not available or build not run)"
 BUILD_STATUS=""
 if [ -f $BUILD_LOG_FILE ]; then
-    BUILD_LOG_HTML="<a href=$(basename $BUILD_LOG_FILE)>log</a>"
+    if [ -f ${BUILD_LOG_FILE: 0:-4}.html ]; then
+	BUILD_LOG_HTML="<a href=$(basename ${BUILD_LOG_FILE: 0:-4}.html)>log</a> <a href=$(basename $BUILD_LOG_FILE)>(plain text)</a>"
+    else
+	BUILD_LOG_HTML="<a href=$(basename $BUILD_LOG_FILE)>log</a>"
+    fi
     if (tail -1 $BUILD_LOG_FILE | grep -qw "done."); then
         BUILD_STATUS="PASSED"
     else
@@ -163,7 +197,14 @@ for d in "." $ALL_DIRS; do
         fi
         if [ -d "${RESULTS_DIR}/${d}/${f}" ]; then
             echo "<a href=$b/index.html>$b</a><br>" >> $index
-        else
+	# special case: if the file is a *_log.txt and has a corresponding .html
+        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${RESULTS_DIR}/${d}/${f: 0:-4}.html" ]]; then
+	    markup="${f: 0:-4}.html"
+	    plaintext=$f
+            echo "<a href=$markup>$markup</a> <a href=$plaintext>(plain text)</a><br>" >> $index
+	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${RESULTS_DIR}/${d}/${f: 0:-5}.txt" ]]; then
+	    continue
+	else
             echo "<a href=$b>$b</a><br>" >> $index
         fi
     done
