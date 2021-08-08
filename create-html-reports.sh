@@ -88,12 +88,12 @@ fi
 ALL_LOGS=$(find -L $RESULTS_DIR -type f -name "*_log.txt" -print)
 
 for f in $ALL_LOGS; do
-    b=$(basename ${f: 0:-4})
-    html=$(echo $f | sed 's/.txt$/.html/')
+    base_no_extension=$(basename ${f: 0:-4})
+    html=${f: 0:-4}.html
     echo "<!doctype html>
 <html>
 <head>
-   <title>$b</title>
+   <title>$base_no_extension</title>
 <style>
 pre {
     display: inline;
@@ -102,7 +102,7 @@ pre {
 </style>
 </head>
 <body>
-<h1>${b}</h1><br>
+<h1>${base_no_extension}</h1><br>
 " > $html
     awk '{ print "<a id=\""NR"\" href=\"#"NR"\">"NR"</a>: <pre>"$0"</pre><br>"}' $f >> $html
     echo "</body>
