@@ -71,7 +71,6 @@ export DASK_LOGGING__DISTRIBUTED="DEBUG"
 ulimit -n 100000
 
 
-DASK_SCHEDULER_PORT=${DASK_SCHEDULER_PORT:-8792}
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
 WORKERS_LOG=${LOGS_DIR}/worker-${HOSTNAME}_log.txt
 
@@ -107,11 +106,9 @@ function buildUCXWithInfinibandArgs {
     export DASK_UCX__RDMACM=True
     export DASK_RMM__POOL_SIZE=0.5GB
 
-    UCXPY_INTERFACE=${UCXPY_INTERFACE:-ib0}
-
     SCHEDULER_ARGS="--protocol=ucx
                 --port=$DASK_SCHEDULER_PORT
-                --interface=$UCXPY_INTERFACE
+                --interface=$DASK_CUDA_INTERFACE
                 --scheduler-file $SCHEDULER_FILE
                "
 
