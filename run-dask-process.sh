@@ -29,8 +29,9 @@ function hasArg {
 VALIDARGS="-h --help scheduler workers tcp ucx ucxib ucx-ib"
 HELP="$0 [<app> ...] [<flag> ...]
  where <app> is:
-   scheduler        - start dask scheduler
-   workers          - start dask workers
+   scheduler               - start dask scheduler
+   workers                 - start dask workers
+   tcp/ucx/ucxib/ucx-ib    - communication type for cluster
  and <flag> is:
    -h | --help      - print this text
 
