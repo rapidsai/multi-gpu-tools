@@ -21,6 +21,9 @@ from dask_cuda.initialize import initialize
 
 
 def initialize_dask_cuda(communication_type):
+    if "ucx" in communication_type:
+        os.environ["UCX_MAX_RNDV_RAILS"] = "1"
+
     if communication_type in ["ucxib", "ucx-ib"]:
         initialize(
             enable_tcp_over_ucx=True,
@@ -60,7 +63,6 @@ def wait_for_workers(
     """
     # FIXME: use scheduler file path from global environment if none
     # supplied in configuration yaml
-    os.environ["UCX_MAX_RNDV_RAILS"] = "1"
 
     print("wait_for_workers.py - initializing client...", end="")
     sys.stdout.flush()
@@ -116,7 +118,7 @@ if __name__ == "__main__":
     ap.add_argument(
         "--communication-type",
         type=str,
-        defualt="tcp",
+        default="tcp",
         required=False,
         help="Initiliaze dask_cuda based on the cluster communication type."
         "Supported values are tcp(default), ucx, ucxib, ucx-ib.",
