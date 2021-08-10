@@ -26,14 +26,16 @@ ARGS=$*
 function hasArg {
     (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
 }
-VALIDARGS="-h --help scheduler workers tcp ucx ucxib ucx-ib"
+VALIDARGS="-h --help scheduler workers --tcp --ucx --ucxib --ucx-ib"
 HELP="$0 [<app> ...] [<flag> ...]
  where <app> is:
    scheduler               - start dask scheduler
    workers                 - start dask workers
-   tcp/ucx/ucxib/ucx-ib    - communication type for cluster
  and <flag> is:
-   -h | --help      - print this text
+   --tcp                   - initalize a tcp cluster (default)
+   --ucx                   - initialize a ucx cluster with NVLink
+   --ucxib | --ucx-ib      - initialize a ucx cluster with IB+NVLink
+   -h | --help             - print this text
 
  WORKSPACE dir is: $WORKSPACE
 "
@@ -153,9 +155,9 @@ function buildUCXwithoutInfinibandArgs {
                 "
 }
 
-if hasArg ucx; then
+if hasArg --ucx; then
     buildUCXwithoutInfinibandArgs
-elif hasArg ucxib || hasArg ucx-ib; then
+elif hasArg --ucxib || hasArg --ucx-ib; then
     buildUCXWithInfinibandArgs
 else
     buildTcpArgs
