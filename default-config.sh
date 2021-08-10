@@ -1,7 +1,7 @@
 THIS_DIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
 # Most are defined using the bash := or :- syntax, which means they
 # will be set only if they were previously unset. The project config
-# is loaded first, whic hgives it the opportunity to override anything
+# is loaded first, which gives it the opportunity to override anything
 # in this file that uses that syntax.  If there are variables in this
 # file that should not be overridded by a project, then they will
 # simply not use that syntax and override, since these variables are
