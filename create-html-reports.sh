@@ -1,9 +1,50 @@
 #!/bin/bash
+# Copyright (c) 2021, NVIDIA CORPORATION.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:=$(cd $(dirname $0); pwd)}
+RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 ALL_REPORTS=$(ls ${RESULTS_DIR}/pytest-results-*.txt 2> /dev/null)
+
+# Create the html describing the build and test run
+REPORT_METADATA_HTML=""
+PROJECT_VERSION="unknown"
+PROJECT_BUILD=""
+PROJECT_CHANNEL="unknown"
+PROJECT_REPO_URL="unknown"
+PROJECT_REPO_BRANCH="unknown"
+if [ -f $METADATA_FILE ]; then
+    source $METADATA_FILE
+fi
+# Assume if PROJECT_BUILD is set then a conda version string should be
+# created, else a git version string.
+if [[ "$PROJECT_BUILD" != "" ]]; then
+    REPORT_METADATA_HTML="<table>
+   <tr><td>conda version</td><td>$PROJECT_VERSION</td></tr>
+   <tr><td>build</td><td>$PROJECT_BUILD</td></tr>
+   <tr><td>channel</td><td>$PROJECT_CHANNEL</td></tr>
+</table>
+<br>"
+else
+    REPORT_METADATA_HTML="<table>
+   <tr><td>commit hash</td><td>$PROJECT_VERSION</td></tr>
+   <tr><td>repo</td><td>$PROJECT_REPO_URL</td></tr>
+   <tr><td>branch</td><td>$PROJECT_REPO_BRANCH</td></tr>
+</table>
+<br>"
+fi
+
 
 ################################################################################
 # create the html reports for each individual run (each
@@ -18,12 +59,13 @@ if [ "$ALL_REPORTS" != "" ]; then
    <title>${report_name}</title>
 </head>
 <body>
-<h1>${report_name}</h1><br>
-<table style=\"width:100%\">
+<h1>${report_name}</h1><br>" > $html
+	echo "$REPORT_METADATA_HTML" >> $html
+	echo "<table style=\"width:100%\">
    <tr>
       <th>test file</th><th>status</th><th>logs</th>
    </tr>
-" > $html
+" >> $html
         awk '{ if($2 == "FAILED") {
                   color = "red"
               } else {
@@ -67,6 +109,7 @@ echo "<!doctype html>
 </head>
 <body>
 " > $report
+echo "$REPORT_METADATA_HTML" >> $report
 echo "<img src=\"${STATUS_IMG}\" alt=\"${STATUS}\"/> Overall status: $STATUS<br>" >> $report
 echo "Build: ${BUILD_STATUS} ${BUILD_LOG_HTML}<br>" >> $report
 if [ "$ALL_REPORTS" != "" ]; then

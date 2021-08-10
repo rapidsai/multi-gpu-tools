@@ -1,12 +1,24 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# Copyright (c) 2021, NVIDIA CORPORATION.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:=$(cd $(dirname $0); pwd)}
+RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # Logs can be written to a specific location by setting the LOGS_DIR
 # env var. If unset, all logs are created under a dir named after the
 # current PID.
-LOGS_DIR=${LOGS_DIR:=${RESULTS_DIR}/dask_logs-$$}
+LOGS_DIR=${LOGS_DIR:-${RESULTS_DIR}/dask_logs-$$}
 
 ########################################
 NUMARGS=$#
@@ -159,10 +171,10 @@ worker_pid=""
 num_scheduler_tries=0
 
 function startScheduler {
+    mkdir -p $(dirname $SCHEDULER_FILE)
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
     python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
-    echo "scheduler started."
 }
 
 mkdir -p $LOGS_DIR
@@ -192,6 +204,7 @@ if [[ $START_SCHEDULER == 1 ]]; then
             fi
         fi
     done
+    echo "scheduler started."
 fi
 
 if [[ $START_WORKERS == 1 ]]; then
