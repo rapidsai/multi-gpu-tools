@@ -26,13 +26,16 @@ ARGS=$*
 function hasArg {
     (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
 }
-VALIDARGS="-h --help scheduler workers"
+VALIDARGS="-h --help scheduler workers --tcp --ucx --ucxib --ucx-ib"
 HELP="$0 [<app> ...] [<flag> ...]
  where <app> is:
-   scheduler        - start dask scheduler
-   workers          - start dask workers
+   scheduler               - start dask scheduler
+   workers                 - start dask workers
  and <flag> is:
-   -h | --help      - print this text
+   --tcp                   - initalize a tcp cluster (default)
+   --ucx                   - initialize a ucx cluster with NVLink
+   --ucxib | --ucx-ib      - initialize a ucx cluster with IB+NVLink
+   -h | --help             - print this text
 
  WORKSPACE dir is: $WORKSPACE
 "
@@ -65,47 +68,101 @@ fi
 
 ########################################
 
-export DASK_UCX__CUDA_COPY=True
-export DASK_UCX__TCP=True
-export DASK_UCX__NVLINK=True
-export DASK_UCX__INFINIBAND=True  ###
-export DASK_UCX__RDMACM=True   ###
-export DASK_RMM__POOL_SIZE=0.5GB
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
-export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
-export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
-export DASK_DISTRIBUTED__WORKER__MEMORY__Terminate="False"
-
-#export DASK_UCX__REUSE_ENDPOINTS=False   ###
-export UCXPY_IFNAME="ib0"   ###
-#export UCX_NET_DEVICES=all   ###
-export UCX_MAX_RNDV_RAILS=1  # <-- must be set in the client env too!
-#export DASK_UCX_SOCKADDR_TLS_PRIORITY=sockcm   ###
-#export DASK_UCX_TLS=rc,sockcm,cuda_ipc,cuda_copy   ###
 export DASK_LOGGING__DISTRIBUTED="DEBUG"
 
 ulimit -n 100000
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
-SCHEDULER_ARGS="--protocol=ucx
-                --port=8792
-                --interface=ib0
-                --scheduler-file $SCHEDULER_FILE
-               "
-
-WORKER_ARGS="--enable-tcp-over-ucx
-             --enable-nvlink 
-             --enable-infiniband
-             --enable-rdmacm
-             --rmm-pool-size=$WORKER_RMM_POOL_SIZE
-             --local-directory=/tmp/$LOGNAME 
-             --scheduler-file=$SCHEDULER_FILE
-            "
-#             --net-devices=ib0
 
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
 WORKERS_LOG=${LOGS_DIR}/worker-${HOSTNAME}_log.txt
+
+
+function buildTcpArgs {
+    export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
+    export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
+    export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
+    export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MAX="60s"
+    export DASK_DISTRIBUTED__WORKER__MEMORY__Terminate="False"
+
+    SCHEDULER_ARGS="--protocol=tcp
+                    --port=$DASK_SCHEDULER_PORT
+                    --scheduler-file $SCHEDULER_FILE
+                "
+
+    WORKER_ARGS="--rmm-pool-size=$WORKER_RMM_POOL_SIZE
+             --local-directory=/tmp/$LOGNAME 
+             --scheduler-file=$SCHEDULER_FILE
+            "
+
+}
+
+function buildUCXWithInfinibandArgs {
+
+    export UCX_MAX_RNDV_RAILS=1
+    export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
+
+    export DASK_UCX__CUDA_COPY=True
+    export DASK_UCX__TCP=True
+    export DASK_UCX__NVLINK=True
+    export DASK_UCX__INFINIBAND=True
+    export DASK_UCX__RDMACM=True
+    export DASK_RMM__POOL_SIZE=0.5GB
+
+    SCHEDULER_ARGS="--protocol=ucx
+                --port=$DASK_SCHEDULER_PORT
+                --interface=$DASK_CUDA_INTERFACE
+                --scheduler-file $SCHEDULER_FILE
+               "
+
+    WORKER_ARGS="--enable-tcp-over-ucx
+                --enable-nvlink
+                --enable-infiniband
+                --enable-rdmacm
+                --rmm-pool-size=$WORKER_RMM_POOL_SIZE
+                --local-directory=/tmp/$LOGNAME
+                --scheduler-file=$SCHEDULER_FILE
+                "
+}
+
+
+function buildUCXwithoutInfinibandArgs {
+
+    export UCX_TCP_CM_REUSEADDR=y
+    export UCX_MAX_RNDV_RAILS=1
+    export UCX_TCP_TX_SEG_SIZE=8M
+    export UCX_TCP_RX_SEG_SIZE=8M
+
+    export DASK_UCX__CUDA_COPY=True
+    export DASK_UCX__TCP=True
+    export DASK_UCX__NVLINK=True
+    export DASK_UCX__INFINIBAND=False
+    export DASK_UCX__RDMACM=False
+    export DASK_RMM__POOL_SIZE=0.5GB
+
+
+    SCHEDULER_ARGS="--protocol=ucx
+            --port=$DASK_SCHEDULER_PORT
+            --scheduler-file $SCHEDULER_FILE
+            "
+
+    WORKER_ARGS="--enable-tcp-over-ucx
+                --enable-nvlink
+                --disable-infiniband
+                --disable-rdmacm
+                --rmm-pool-size=$WORKER_RMM_POOL_SIZE
+                --local-directory=/tmp/$LOGNAME
+                --scheduler-file=$SCHEDULER_FILE
+                "
+}
+
+if hasArg --ucx; then
+    buildUCXwithoutInfinibandArgs
+elif hasArg --ucxib || hasArg --ucx-ib; then
+    buildUCXWithInfinibandArgs
+else
+    buildTcpArgs
+fi
+
 
 ########################################
 
