@@ -15,6 +15,7 @@
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
+# FIXME: this is project-specific and should happen at the project level.
 module load cuda/11.0.3
 activateCondaEnv
 
@@ -25,9 +26,9 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 
-# NOTE: it's assumed TESTING_DIR has been setup elsewhere! For
+# NOTE: it's assumed TESTING_DIR has been created elsewhere! For
 # example, cronjob.sh calls this script multiple times in parallel, so
-# it may set up TESTING_DIR once ahead of time.
+# it will create, populate, etc. TESTING_DIR once ahead of time.
 
 export CUPY_CACHE_DIR=${TESTING_DIR}
 

@@ -37,9 +37,15 @@ HELP="$0 [<app> ...] [<flag> ...]
    --ucxib | --ucx-ib      - initialize a ucx cluster with IB+NVLink
    -h | --help             - print this text
 
+ The cluster config order of precedence is any specification on the
+ command line (--tcp, --ucx, etc.) if provided, then the value of the
+ env var CLUSTER_CONFIG_TYPE if set, then the default value of tcp.
+
  WORKSPACE dir is: $WORKSPACE
 "
 
+# CLUSTER_CONFIG_TYPE defaults to the env var value if set, else TCP
+CLUSTER_CONFIG_TYPE=${CLUSTER_CONFIG_TYPE:-TCP}
 START_SCHEDULER=0
 START_WORKERS=0
 
@@ -64,6 +70,14 @@ if hasArg scheduler; then
 fi
 if hasArg workers; then
     START_WORKERS=1
+fi
+# Allow the command line to take precedence
+if hasArg --tcp; then
+    CLUSTER_CONFIG_TYPE=TCP
+elif hasArg --ucx; then
+    CLUSTER_CONFIG_TYPE=UCX
+elif hasArg --ucxib || hasArg --ucx-ib; then
+    CLUSTER_CONFIG_TYPE=UCXIB
 fi
 
 ########################################
@@ -155,11 +169,14 @@ function buildUCXwithoutInfinibandArgs {
                 "
 }
 
-if hasArg --ucx; then
+if [[ "$CLUSTER_CONFIG_TYPE" == "UCX" ]]; then
+    logger "Using cluster configurtion for UCX"
     buildUCXwithoutInfinibandArgs
-elif hasArg --ucxib || hasArg --ucx-ib; then
+elif [[ "$CLUSTER_CONFIG_TYPE" == "UCXIB" ]]; then
+    logger "Using cluster configurtion for UCX with Infiniband"
     buildUCXWithInfinibandArgs
 else
+    logger "Using cluster configurtion for TCP"
     buildTcpArgs
 fi
 
