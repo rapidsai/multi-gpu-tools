@@ -64,12 +64,6 @@ export RAPIDS_DATASET_ROOT_DIR=$DATASETS_DIR
 # this is cugraph-specific.
 for test_file in tests/dask/test_mg_*.py; do
 
-    # FIXME: remove this special case, it is cugraph-specific
-    if (echo $test_file | grep -q "betweenness_centrality\|replication"); then
-        logger "SKIPPING $test_file"
-        continue
-    fi
-
     # Create a log dir per test file per configuration. This will
     # contain all dask scheduler/worker logs, the stdout/stderr of the
     # test run itself, and any reports (XML, etc.) from the test run
@@ -103,8 +97,8 @@ for test_file in tests/dask/test_mg_*.py; do
     fi
 
     if [[ $DASK_STARTUP_ERRORCODE == 0 ]]; then
-        logger "RUNNING: pytest -v -s --cache-clear --no-cov -m '\"not preset_gpu_count\"' $test_file"
-        handleTimeout 600 pytest -v -s --cache-clear --no-cov -m '"not preset_gpu_count"' $test_file
+        logger "RUNNING: pytest -v -s --cache-clear --no-cov $test_file"
+        handleTimeout 600 pytest -v -s --cache-clear --no-cov $test_file
         PYTEST_ERRORCODE=$LAST_EXITCODE
     else
         logger "Dask processes failed to start, not running tests for $test_file."
