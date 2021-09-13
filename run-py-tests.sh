@@ -69,8 +69,9 @@ for test_file in tests/dask/test_mg_*.py; do
     # test run itself, and any reports (XML, etc.) from the test run
     # for the test file.  Export this var so called scripts will pick
     # it up.
+    if (echo $test_file | grep -q "bfs"); then  #remove this 
     RELATIVE_LOGS_DIR="$(basename --suffix=.py $test_file)/${NUM_GPUS}-GPUs"
-    export LOGS_DIR="${RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
+    export LOGS_DIR="${RESULTS_DIR}/testing/${RELATIVE_LOGS_DIR}"
     mkdir -p $LOGS_DIR
 
     setTee ${LOGS_DIR}/pytest_output_log.txt
@@ -130,9 +131,10 @@ for test_file in tests/dask/test_mg_*.py; do
     if [[ $PYTEST_ERRORCODE != 0 ]]; then
         test_status_string=FAILED
     fi
-    echo "$test_file $test_status_string ./${RELATIVE_LOGS_DIR}" >> ${RESULTS_DIR}/pytest-results-${NUM_GPUS}-GPUs.txt
+    echo "$test_file $test_status_string ./${RELATIVE_LOGS_DIR}" >> ${RESULTS_DIR}/testing/pytest-results-${NUM_GPUS}-GPUs.txt
     
     sleep 2
+    fi   #remove this echo $test_file | grep -q "bfs"
 done
 
 logger "Exiting \"run-py-tests.sh $NUM_GPUS\" with $ERRORCODE"

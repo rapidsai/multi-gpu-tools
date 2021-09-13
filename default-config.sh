@@ -26,6 +26,7 @@ RESULTS_DIR=${RESULTS_DIR:-${RESULTS_ARCHIVE_DIR}/latest}
 METADATA_FILE=${METADATA_FILE:-${RESULTS_DIR}/metadata.sh}
 WORKSPACE=${WORKSPACE:-${OUTPUT_DIR}/workspace}
 TESTING_DIR=${TESTING_DIR:-${WORKSPACE}/testing}
+BENCHMARK_DIR=${BENCHMARK_DIR_:-${WORKSPACE}/benchmark}
 SCRIPTS_DIR=$RAPIDS_MG_TOOLS_DIR
 
 # These should be oerridden by the project config!
@@ -46,6 +47,7 @@ DATASETS_DIR=$DATASETS_DIR
 
 BUILD_LOG_FILE=${RESULTS_DIR}/build_log.txt
 SCHEDULER_FILE=${WORKSPACE}/dask-scheduler.json
+
 
 DATE=$(date --utc "+%Y-%m-%d_%H:%M:%S")_UTC
 ENV_EXPORT_FILE=${WORKSPACE}/$(basename ${CONDA_ENV})-${DATE}.txt

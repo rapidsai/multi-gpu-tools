@@ -67,6 +67,7 @@ function unsetTee {
 
 # Creates a unique results dir based on date, then links the common
 # results dir name to it.
+if false; then
 function setupResultsDir {
     mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
     # FIXME: do not assume RESULTS_DIR is currently a symlink, and
@@ -74,6 +75,21 @@ function setupResultsDir {
     rm -rf $RESULTS_DIR
     ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
 }
+fi
+
+function setupResultsDir {
+    mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}/${RESULTS_SUB_DIR}
+    #mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
+    # FIXME: do not assume RESULTS_DIR is currently a symlink, and
+    # handle appropriately.if not.
+    rm -rf $RESULTS_DIR/${RESULTS_SUB_DIR}
+    mkdir -p $RESULTS_DIR
+    ln -s ${RESULTS_ARCHIVE_DIR}/${DATE}/${RESULTS_SUB_DIR} $RESULTS_DIR/${RESULTS_SUB_DIR}
+    # find a better solution instead of deleting this directory
+    # why is it copying ${RESULTS_ARCHIVE_DIR}/${DATE} in $RESULTS_DIR
+    rm -rf $RESULTS_DIR/${DATE}
+}
+
 
 # echos the name of the directory that $1 is linked to. Useful for
 # getting the actual path of the results dir since that is often
