@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this assumes all reports are from running pytests
-ALL_REPORTS=$(ls ${RESULTS_DIR}/testing/pytest-results-*.txt 2> /dev/null)  #******************change this for benchmark
+ALL_REPORTS=$(ls ${RESULTS_DIR}/testing/pytest-results-*.txt 2> /dev/null)
 
 # Create the html describing the build and test run
 REPORT_METADATA_HTML=""
@@ -53,7 +53,7 @@ fi
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
         report_name=$(basename -s .txt $report)
-        html=${RESULTS_DIR}/testing/${report_name}.html    #******************change this for benchmark
+        html=${RESULTS_DIR}/testing/${report_name}.html
         echo "<!doctype html>
 <html>
 <head>
@@ -85,7 +85,7 @@ fi
 # Create a .html file for each *_log.txt file, which is just the contents
 # of the log with a line number and anchor id for each line that can
 # be used for sharing links to lines.
-ALL_LOGS=$(find -L $RESULTS_DIR/testing -type f -name "*_log.txt" -print)        #******************change this for benchmark
+ALL_LOGS=$(find -L $RESULTS_DIR/testing -type f -name "*_log.txt" -print)
 
 for f in $ALL_LOGS; do
     base_no_extension=$(basename ${f: 0:-4})
@@ -135,7 +135,7 @@ if [ -f $BUILD_LOG_FILE ]; then
     fi
 fi
 
-report=${RESULTS_DIR}/testing/report.html    #******************change this for benchmark
+report=${RESULTS_DIR}/testing/report.html
 echo "<!doctype html>
 <html>
 <head>
@@ -178,10 +178,10 @@ echo "</body>
 # the index.html if present.
 # The index.html will just contain links to the individual files and
 # subdirs present in each dir, just as if browsing in a file explorer.
-ALL_DIRS=$(find -L $RESULTS_DIR/testing -type d -printf "%P\n")  #******************change this for benchmark
+ALL_DIRS=$(find -L $RESULTS_DIR/testing -type d -printf "%P\n")
 
 for d in "." $ALL_DIRS; do
-    index=${RESULTS_DIR}/testing/${d}/index.html         #******************change this for benchmark
+    index=${RESULTS_DIR}/testing/${d}/index.html
     echo "<!doctype html>
 <html>
 <head>
@@ -190,19 +190,19 @@ for d in "." $ALL_DIRS; do
 <body>
 <h1>${d}</h1><br>
 " > $index
-    for f in $(ls ${RESULTS_DIR}/testing/$d); do     #******************change this for benchmark
+    for f in $(ls ${RESULTS_DIR}/testing/$d); do
         b=$(basename $f)
         if [[ "$b" == "index.html" ]]; then
             continue
         fi
-        if [ -d "${RESULTS_DIR}/testing/${d}/${f}" ]; then       #******************change this for benchmark
+        if [ -d "${RESULTS_DIR}/testing/${d}/${f}" ]; then
             echo "<a href=$b/index.html>$b</a><br>" >> $index
 	# special case: if the file is a *_log.txt and has a corresponding .html
-        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-4}.html" ]]; then    #******************change this for benchmark
+        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-4}.html" ]]; then
 	    markup="${f: 0:-4}.html"
 	    plaintext=$f
             echo "<a href=$markup>$markup</a> <a href=$plaintext>(plain text)</a><br>" >> $index
-	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-5}.txt" ]]; then  #******************change this for benchmark
+	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-5}.txt" ]]; then
 	    continue
 	else
             echo "<a href=$b>$b</a><br>" >> $index
