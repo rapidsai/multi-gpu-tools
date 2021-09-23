@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this assumes all reports are from running pytests
-ALL_REPORTS=$(ls ${RESULTS_DIR}/testing/pytest-results-*.txt 2> /dev/null)
+ALL_REPORTS=$(ls ${TESTING_RESULTS_DIR}/pytest-results-*.txt 2> /dev/null)
 
 # Create the html describing the build and test run
 REPORT_METADATA_HTML=""
@@ -53,7 +53,7 @@ fi
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
         report_name=$(basename -s .txt $report)
-        html=${RESULTS_DIR}/testing/${report_name}.html
+        html=${TESTING_RESULTS_DIR}/${report_name}.html
         echo "<!doctype html>
 <html>
 <head>
@@ -135,7 +135,7 @@ if [ -f $BUILD_LOG_FILE ]; then
     fi
 fi
 
-report=${RESULTS_DIR}/testing/report.html
+report=${TESTING_RESULTS_DIR}/report.html
 echo "<!doctype html>
 <html>
 <head>
@@ -181,7 +181,7 @@ echo "</body>
 ALL_DIRS=$(find -L $RESULTS_DIR/testing -type d -printf "%P\n")
 
 for d in "." $ALL_DIRS; do
-    index=${RESULTS_DIR}/testing/${d}/index.html
+    index=${TESTING_RESULTS_DIR}/${d}/index.html
     echo "<!doctype html>
 <html>
 <head>
@@ -190,19 +190,19 @@ for d in "." $ALL_DIRS; do
 <body>
 <h1>${d}</h1><br>
 " > $index
-    for f in $(ls ${RESULTS_DIR}/testing/$d); do
+    for f in $(ls ${TESTING_RESULTS_DIR}/$d); do
         b=$(basename $f)
         if [[ "$b" == "index.html" ]]; then
             continue
         fi
-        if [ -d "${RESULTS_DIR}/testing/${d}/${f}" ]; then
+        if [ -d "${TESTING_RESULTS_DIR}/${d}/${f}" ]; then
             echo "<a href=$b/index.html>$b</a><br>" >> $index
 	# special case: if the file is a *_log.txt and has a corresponding .html
-        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-4}.html" ]]; then
+        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-4}.html" ]]; then
 	    markup="${f: 0:-4}.html"
 	    plaintext=$f
             echo "<a href=$markup>$markup</a> <a href=$plaintext>(plain text)</a><br>" >> $index
-	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${RESULTS_DIR}/testing/${d}/${f: 0:-5}.txt" ]]; then
+	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-5}.txt" ]]; then
 	    continue
 	else
             echo "<a href=$b>$b</a><br>" >> $index

@@ -67,17 +67,14 @@ function unsetTee {
 
 # Creates a unique results dir based on date, then links the common
 # results dir name to it.
-
 function setupResultsDir {
-    mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}/${RESULTS_SUB_DIR}
+    mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
     # FIXME: do not assume RESULTS_DIR is currently a symlink, and
     # handle appropriately.if not.
-    rm -rf $RESULTS_DIR/${RESULTS_SUB_DIR}
-    mkdir -p $RESULTS_DIR
-    ln -s ${RESULTS_ARCHIVE_DIR}/${DATE}/${RESULTS_SUB_DIR} $RESULTS_DIR/${RESULTS_SUB_DIR}
-    # find a better solution instead of deleting this directory
-    # FIXME: why is it copying ${RESULTS_ARCHIVE_DIR}/${DATE} in $RESULTS_DIR
-    rm -rf $RESULTS_DIR/${DATE}
+    rm -rf $RESULTS_DIR
+    ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
+    mkdir -p $TESTING_RESULTS_DIR
+    mkdir -p $BENCHMARK_RESULTS_DIR
 }
 
 

@@ -76,7 +76,7 @@ for algo in ${ALGOS[*]}; do
         # for the benchmark file.  Export this var so called scripts will pick
         # it up.
         RELATIVE_LOGS_DIR="${algo}_scale${scale}_num_nodes${NUM_NODES}/${NUM_GPUS}-GPUs"
-        export LOGS_DIR="${RESULTS_DIR}/benchmark/${RELATIVE_LOGS_DIR}"
+        export LOGS_DIR="${BENCHMARK_RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
         mkdir -p $LOGS_DIR
 
         setTee ${LOGS_DIR}/benchmark_output_log.txt
@@ -107,15 +107,15 @@ for algo in ${ALGOS[*]}; do
             logger "RUNNING benchmark for algo $algo"
             if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    python $OUTPUT_DIR/main.py --algo=$algo --scale=$scale --symmetric-graph
+                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
                 else
-                    python $OUTPUT_DIR/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    python $OUTPUT_DIR/main.py --algo=$algo --scale=$scale
+                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
                 else
-                    python $OUTPUT_DIR/main.py --algo=$algo --scale=$scale --unweighted
+                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
                 fi
             fi 
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
@@ -151,7 +151,7 @@ for algo in ${ALGOS[*]}; do
             if [[ $BENCHMARK_ERRORCODE != 0 ]]; then
                 benchmark_status_string=FAILED
             fi
-            echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${RESULTS_DIR}/benchmark/benchmark-results-${NUM_GPUS}-GPUs.txt
+            echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
         fi
         
         sleep 2
