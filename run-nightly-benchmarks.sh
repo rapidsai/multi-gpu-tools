@@ -27,7 +27,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("10" "11" "12")
 #ALGOS=(bfs sssp pagerank wcc louvain katz)
-ALGOS=(louvain)
+ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
 scales_array=${SCALES[((NUM_NODES/2))]}
@@ -95,7 +95,7 @@ for algo in ${ALGOS[*]}; do
             uniqueJobName=$(uuidgen | cut -d'-' -f1)
             srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
             RUN_DASK_CLUSTER_PID=$!
-            python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
+            handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
             DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
 
         else
@@ -107,15 +107,15 @@ for algo in ${ALGOS[*]}; do
             logger "RUNNING benchmark for algo $algo"
             if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
                 else
-                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
                 else
-                    python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
                 fi
             fi 
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
@@ -145,14 +145,13 @@ for algo in ${ALGOS[*]}; do
         unsetTee
 
         # Generate a crude report containing the status of each benchmark file.
-        # Should we take this down
-        if false; then
-            benchmark_status_string=PASSED
-            if [[ $BENCHMARK_ERRORCODE != 0 ]]; then
-                benchmark_status_string=FAILED
-            fi
-            echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
+        
+        benchmark_status_string=PASSED
+        if [[ $BENCHMARK_ERRORCODE != 0 ]]; then
+            benchmark_status_string=FAILED
         fi
+        echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
+        #fi
         
         sleep 2
     done
