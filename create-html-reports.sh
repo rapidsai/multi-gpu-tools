@@ -85,7 +85,7 @@ fi
 # Create a .html file for each *_log.txt file, which is just the contents
 # of the log with a line number and anchor id for each line that can
 # be used for sharing links to lines.
-ALL_LOGS=$(find -L $RESULTS_DIR/testing -type f -name "*_log.txt" -print)
+ALL_LOGS=$(find -L ${TESTING_RESULTS_DIR} -type f -name "*_log.txt" -print)
 
 for f in $ALL_LOGS; do
     base_no_extension=$(basename ${f: 0:-4})
@@ -178,7 +178,7 @@ echo "</body>
 # the index.html if present.
 # The index.html will just contain links to the individual files and
 # subdirs present in each dir, just as if browsing in a file explorer.
-ALL_DIRS=$(find -L $RESULTS_DIR/testing -type d -printf "%P\n")
+ALL_DIRS=$(find -L ${TESTING_RESULTS_DIR} -type d -printf "%P\n")
 
 for d in "." $ALL_DIRS; do
     index=${TESTING_RESULTS_DIR}/${d}/index.html

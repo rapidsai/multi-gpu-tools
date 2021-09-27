@@ -25,9 +25,9 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # Creates a string "0,1,2,3" if NUM_GPUS=4, for example, which can be
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
-SCALES=("10" "11" "12")
-#ALGOS=(bfs sssp pagerank wcc louvain katz)
-ALGOS=(bfs)
+SCALES=("23" "24" "25")
+ALGOS=(bfs sssp pagerank wcc louvain katz)
+#ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
 scales_array=${SCALES[((NUM_NODES/2))]}
@@ -107,15 +107,15 @@ for algo in ${ALGOS[*]}; do
             logger "RUNNING benchmark for algo $algo"
             if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
                 else
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
                 else
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
+                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
                 fi
             fi 
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
