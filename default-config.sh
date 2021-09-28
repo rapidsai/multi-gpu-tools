@@ -28,7 +28,7 @@ WORKSPACE=${WORKSPACE:-${OUTPUT_DIR}/workspace}
 TESTING_DIR=${TESTING_DIR:-${WORKSPACE}/testing}
 SCRIPTS_DIR=$RAPIDS_MG_TOOLS_DIR
 
-# These should be oerridden by the project config!
+# These really should be oerridden by the project config!
 CONDA_ENV=${CONDA_ENV:-rapids}
 PRIMARY_CONDA_PACKAGE_NAME=${PRIMARY_CONDA_PACKAGE_NAME:-condapackage}
 REPO_DIR_NAME=${REPO_DIR_NAME:-repo}
@@ -38,17 +38,22 @@ WORKER_RMM_POOL_SIZE=${WORKER_RMM_POOL_SIZE:-12G}
 DASK_CUDA_INTERFACE=${DASK_CUDA_INTERFACE:-ib0}
 DASK_SCHEDULER_PORT=${DASK_SCHEDULER_PORT:-8792}
 
-# There is no default for this, it is here for documentation purposes
-# since RAPIDS_DATASET_ROOT_DIR will be set to it in various test
-# scripts (which may enforce that it be set), and it should be set by
-# the project config.
+BUILD_LOG_FILE=${BUILD_LOG_FILE:-${RESULTS_DIR}/build_log.txt}
+SCHEDULER_FILE=${SCHEDULER_FILE:-${WORKSPACE}/dask-scheduler.json}
+
+DATE=${DATE:-$(date --utc "+%Y-%m-%d_%H:%M:%S")_UTC}
+ENV_EXPORT_FILE=${ENV_EXPORT_FILE:-${WORKSPACE}/$(basename ${CONDA_ENV})-${DATE}.txt}
+
+# FIXME: consider removing these or this FIXME, since the remaining
+# vars are only useful to communicate that some projects have scripts
+# that use these vars.
+
+# There is no default for this since it must be project-specific. This
+# is here for documentation purposes.  In most cases,
+# RAPIDS_DATASET_ROOT_DIR will be set to this in various test scripts
+# (which may enforce that it be set), and it should be set by the
+# project config.
 DATASETS_DIR=$DATASETS_DIR
-
-BUILD_LOG_FILE=${RESULTS_DIR}/build_log.txt
-SCHEDULER_FILE=${WORKSPACE}/dask-scheduler.json
-
-DATE=$(date --utc "+%Y-%m-%d_%H:%M:%S")_UTC
-ENV_EXPORT_FILE=${WORKSPACE}/$(basename ${CONDA_ENV})-${DATE}.txt
 
 # There are no defaults for these, they are here for documentation
 # purposes since they will be used by various reporting scripts (which
