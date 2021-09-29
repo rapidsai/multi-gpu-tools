@@ -25,7 +25,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # Creates a string "0,1,2,3" if NUM_GPUS=4, for example, which can be
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
-SCALES=("23" "24" "25")
+SCALES=("17" "18" "19")
 ALGOS=(bfs sssp pagerank wcc louvain katz)
 #ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
@@ -107,15 +107,28 @@ for algo in ${ALGOS[*]}; do
             logger "RUNNING benchmark for algo $algo"
             if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
+                    if [[ $NUM_NODES -gt 1 ]]; then
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
+                    else
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
                 else
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                    if [[ $NUM_NODES -gt 1 ]]; then
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                    else
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
+                    if [[ $NUM_NODES -gt 1 ]]; then
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
+                    else
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
                 else
-                    handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                    if [[ $NUM_NODES -gt 1 ]]; then
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                    else
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
+
                 fi
             fi 
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
