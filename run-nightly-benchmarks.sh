@@ -111,11 +111,13 @@ for algo in ${ALGOS[*]}; do
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
                     else
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
+                    fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
                     else
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                    fi
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
@@ -123,12 +125,13 @@ for algo in ${ALGOS[*]}; do
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
                     else
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
+                    fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
                     else
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
-
+                    fi
                 fi
             fi 
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
