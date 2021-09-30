@@ -52,6 +52,10 @@ fi
 # pytest-results*.txt file)
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
+	# Get the individual report name, and use the .txt file path
+	# to form the html report being generated (same location as
+	# the .txt file). This will be an abs path since it is a file
+	# on disk being written.
         report_name=$(basename -s .txt $report)
         html_report_abs_path=$(dirname $report)/${report_name}.html
         echo "<!doctype html>
