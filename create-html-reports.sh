@@ -135,7 +135,7 @@ if [ -f $BUILD_LOG_FILE ]; then
     fi
 fi
 
-report=${TESTING_RESULTS_DIR}/report.html
+report=${RESULTS_DIR}/report.html
 echo "<!doctype html>
 <html>
 <head>
