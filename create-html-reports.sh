@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this assumes all reports are from running pytests
-ALL_REPORTS=$(ls ${TESTING_RESULTS_DIR}/pytest-results-*.txt 2> /dev/null)
+ALL_REPORTS=$(find ${TESTING_RESULTS_DIR} -name "pytest-results-*.txt")
 
 # Create the html describing the build and test run
 REPORT_METADATA_HTML=""
@@ -52,32 +52,36 @@ fi
 # pytest-results*.txt file)
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
+	# Get the individual report name, and use the .txt file path
+	# to form the html report being generated (same location as
+	# the .txt file). This will be an abs path since it is a file
+	# on disk being written.
         report_name=$(basename -s .txt $report)
-        html=${TESTING_RESULTS_DIR}/${report_name}.html
+        html_report_abs_path=$(dirname $report)/${report_name}.html
         echo "<!doctype html>
 <html>
 <head>
    <title>${report_name}</title>
 </head>
 <body>
-<h1>${report_name}</h1><br>" > $html
-	echo "$REPORT_METADATA_HTML" >> $html
-	echo "<table style=\"width:100%\">
+<h1>${report_name}</h1><br>" > $html_report_abs_path
+        echo "$REPORT_METADATA_HTML" >> $html_report_abs_path
+        echo "<table style=\"width:100%\">
    <tr>
       <th>test file</th><th>status</th><th>logs</th>
    </tr>
-" >> $html
+" >> $html_report_abs_path
         awk '{ if($2 == "FAILED") {
                   color = "red"
               } else {
                   color = "green"
               }
               printf "<tr><td>%s</td><td style=\"color:%s\">%s</td><td><a href=%s/index.html>%s</a></td></tr>\n", $1, color, $2, $3, $3
-             }' $report >> $html
+             }' $report >> $html_report_abs_path
         echo "</table>
     </body>
     </html>
-    " >> $html
+    " >> $html_report_abs_path
     done
 fi
 
@@ -124,9 +128,9 @@ BUILD_LOG_HTML="(build log not available or build not run)"
 BUILD_STATUS=""
 if [ -f $BUILD_LOG_FILE ]; then
     if [ -f ${BUILD_LOG_FILE: 0:-4}.html ]; then
-	BUILD_LOG_HTML="<a href=$(basename ${BUILD_LOG_FILE: 0:-4}.html)>log</a> <a href=$(basename $BUILD_LOG_FILE)>(plain text)</a>"
+        BUILD_LOG_HTML="<a href=$(basename ${BUILD_LOG_FILE: 0:-4}.html)>log</a> <a href=$(basename $BUILD_LOG_FILE)>(plain text)</a>"
     else
-	BUILD_LOG_HTML="<a href=$(basename $BUILD_LOG_FILE)>log</a>"
+        BUILD_LOG_HTML="<a href=$(basename $BUILD_LOG_FILE)>log</a>"
     fi
     if (tail -1 $BUILD_LOG_FILE | grep -qw "done."); then
         BUILD_STATUS="PASSED"
@@ -154,6 +158,11 @@ if [ "$ALL_REPORTS" != "" ]; then
    " >> $report
     for f in $ALL_REPORTS; do
         report_name=$(basename -s .txt $f)
+        # report_path should be of the form "tests/foo.html"
+        prefix_to_remove="$RESULTS_DIR/"
+        report_rel_path=${f/$prefix_to_remove}
+        report_path=$(dirname $report_rel_path)/${report_name}.html
+
         if (grep -w FAILED $f > /dev/null); then
             status="FAILED"
             color="red"
@@ -161,7 +170,7 @@ if [ "$ALL_REPORTS" != "" ]; then
             status="PASSED"
             color="green"
         fi
-        echo "<tr><td><a href=${report_name}.html>${report_name}</a></td><td style=\"color:${color}\">${status}</td></tr>" >> $report
+        echo "<tr><td><a href=${report_path}>${report_name}</a></td><td style=\"color:${color}\">${status}</td></tr>" >> $report
     done
     echo "</table>" >> $report
 else
@@ -197,14 +206,14 @@ for d in "." $ALL_DIRS; do
         fi
         if [ -d "${TESTING_RESULTS_DIR}/${d}/${f}" ]; then
             echo "<a href=$b/index.html>$b</a><br>" >> $index
-	# special case: if the file is a *_log.txt and has a corresponding .html
+        # special case: if the file is a *_log.txt and has a corresponding .html
         elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-4}.html" ]]; then
-	    markup="${f: 0:-4}.html"
-	    plaintext=$f
+            markup="${f: 0:-4}.html"
+            plaintext=$f
             echo "<a href=$markup>$markup</a> <a href=$plaintext>(plain text)</a><br>" >> $index
-	elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-5}.txt" ]]; then
-	    continue
-	else
+        elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-5}.txt" ]]; then
+            continue
+        else
             echo "<a href=$b>$b</a><br>" >> $index
         fi
     done
