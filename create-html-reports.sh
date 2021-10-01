@@ -158,9 +158,9 @@ if [ "$ALL_REPORTS" != "" ]; then
    " >> $report
     for f in $ALL_REPORTS; do
         report_name=$(basename -s .txt $f)
-        # report_path should be of the form "testing/foo.html"
-        path_to_remove="$RESULTS_DIR/"
-        report_rel_path=${f/$path_to_remove}
+        # report_path should be of the form "tests/foo.html"
+        prefix_to_remove="$RESULTS_DIR/"
+        report_rel_path=${f/$prefix_to_remove}
         report_path=$(dirname $report_rel_path)/${report_name}.html
 
         if (grep -w FAILED $f > /dev/null); then
