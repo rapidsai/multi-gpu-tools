@@ -52,10 +52,10 @@ fi
 # pytest-results*.txt file)
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
-	# Get the individual report name, and use the .txt file path
-	# to form the html report being generated (same location as
-	# the .txt file). This will be an abs path since it is a file
-	# on disk being written.
+        # Get the individual report name, and use the .txt file path
+        # to form the html report being generated (same location as
+        # the .txt file). This will be an abs path since it is a file
+        # on disk being written.
         report_name=$(basename -s .txt $report)
         html_report_abs_path=$(dirname $report)/${report_name}.html
         echo "<!doctype html>
@@ -187,10 +187,10 @@ echo "</body>
 # the index.html if present.
 # The index.html will just contain links to the individual files and
 # subdirs present in each dir, just as if browsing in a file explorer.
-ALL_DIRS=$(find -L ${TESTING_RESULTS_DIR} -type d -printf "%P\n")
+ALL_DIRS=$(find -L ${RESULTS_DIR} -type d -printf "%P\n")
 
 for d in "." $ALL_DIRS; do
-    index=${TESTING_RESULTS_DIR}/${d}/index.html
+    index=${RESULTS_DIR}/${d}/index.html
     echo "<!doctype html>
 <html>
 <head>
@@ -199,19 +199,20 @@ for d in "." $ALL_DIRS; do
 <body>
 <h1>${d}</h1><br>
 " > $index
-    for f in $(ls ${TESTING_RESULTS_DIR}/$d); do
+    for f in ${RESULTS_DIR}/$d/*; do
         b=$(basename $f)
+        # Do not include index.html in index.html (it's a link to itself)
         if [[ "$b" == "index.html" ]]; then
             continue
         fi
-        if [ -d "${TESTING_RESULTS_DIR}/${d}/${f}" ]; then
+        if [ -d "$f" ]; then
             echo "<a href=$b/index.html>$b</a><br>" >> $index
         # special case: if the file is a *_log.txt and has a corresponding .html
-        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-4}.html" ]]; then
-            markup="${f: 0:-4}.html"
-            plaintext=$f
+        elif [[ "${f: -8}" == "_log.txt" ]] && [[ -f "${f: 0:-4}.html" ]]; then
+            markup="${b: 0:-4}.html"
+            plaintext=$b
             echo "<a href=$markup>$markup</a> <a href=$plaintext>(plain text)</a><br>" >> $index
-        elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${TESTING_RESULTS_DIR}/${d}/${f: 0:-5}.txt" ]]; then
+        elif [[ "${f: -9}" == "_log.html" ]] && [[ -f "${f: 0:-5}.txt" ]]; then
             continue
         else
             echo "<a href=$b>$b</a><br>" >> $index
