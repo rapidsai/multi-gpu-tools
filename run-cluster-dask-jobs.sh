@@ -15,8 +15,9 @@
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
-# FIXME: do not hardcode module load calls.
-module load cuda/11.0.3
+if hasArg --loadModule; then
+    module load cuda/11.0.3
+fi
 activateCondaEnv
 
 RUN_SCHEDULER=0
@@ -30,7 +31,7 @@ RUN_SCHEDULER=0
 # is typically run on 0 and putting the scheduler on 1 helps
 # distribute the load (I think, just based on getting OOM errors when
 # everything ran on 0).
-if [[ $SLURM_NODEID == 1 ]] || hasArg --scheduler-and-workers; then
+if [[ $SLURM_NODEID == 0 ]] || hasArg --scheduler-and-workers; then
     RUN_SCHEDULER=1
 fi
 

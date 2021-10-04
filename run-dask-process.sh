@@ -84,7 +84,7 @@ fi
 
 export DASK_LOGGING__DISTRIBUTED="DEBUG"
 
-ulimit -n 100000
+#ulimit -n 100000
 
 
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
@@ -190,7 +190,7 @@ num_scheduler_tries=0
 function startScheduler {
     mkdir -p $(dirname $SCHEDULER_FILE)
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
-    python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
+    dask-scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
 }
 
@@ -231,7 +231,7 @@ if [[ $START_WORKERS == 1 ]]; then
         sleep 2
     done
     echo "RUNNING: \"python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
-    python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &
+    dask-cuda-worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &
     worker_pid=$!
     echo "worker(s) started."
 fi
