@@ -73,7 +73,10 @@ function setupResultsDir {
     # handle appropriately.if not.
     rm -rf $RESULTS_DIR
     ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
+    mkdir -p $TESTING_RESULTS_DIR
+    mkdir -p $BENCHMARK_RESULTS_DIR
 }
+
 
 # echos the name of the directory that $1 is linked to. Useful for
 # getting the actual path of the results dir since that is often
