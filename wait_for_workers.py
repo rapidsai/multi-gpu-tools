@@ -21,6 +21,7 @@ from dask_cuda.initialize import initialize
 
 
 def initialize_dask_cuda(communication_type):
+    communication_type = communication_type.lower()
     if "ucx" in communication_type:
         os.environ["UCX_MAX_RNDV_RAILS"] = "1"
 

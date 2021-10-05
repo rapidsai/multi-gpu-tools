@@ -82,7 +82,7 @@ fi
 
 ########################################
 
-export DASK_LOGGING__DISTRIBUTED="DEBUG"
+#export DASK_LOGGING__DISTRIBUTED="DEBUG"
 
 #ulimit -n 100000
 
