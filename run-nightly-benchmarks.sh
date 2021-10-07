@@ -26,8 +26,8 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("17" "18" "19")
-#ALGOS=(bfs sssp pagerank wcc louvain katz)
-ALGOS=(bfs)
+ALGOS=(bfs sssp pagerank wcc louvain katz)
+#ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
 scales_array=${SCALES[((NUM_NODES/2))]}
