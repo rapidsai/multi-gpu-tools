@@ -86,7 +86,7 @@ for test_file in tests/dask/test_mg_*.py; do
         export SCHEDULER_FILE=$SCHEDULER_FILE
         # srun runs a task per node by default
         uniqueJobName=$(uuidgen | cut -d'-' -f1)
-        srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
+        srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --partition=batch --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
         RUN_DASK_CLUSTER_PID=$!
         handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
         DASK_STARTUP_ERRORCODE=$LAST_EXITCODE

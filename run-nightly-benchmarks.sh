@@ -26,8 +26,8 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("17" "18" "19")
-ALGOS=(bfs sssp pagerank wcc louvain katz)
-#ALGOS=(bfs)
+#ALGOS=(bfs sssp pagerank wcc louvain katz)
+ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
 scales_array=${SCALES[((NUM_NODES/2))]}
@@ -93,7 +93,7 @@ for algo in ${ALGOS[*]}; do
             export SCHEDULER_FILE=$SCHEDULER_FILE
             # srun runs a task per node by default
             uniqueJobName=$(uuidgen | cut -d'-' -f1)
-            srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
+            srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --partition=batch --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
             RUN_DASK_CLUSTER_PID=$!
             handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
             DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
