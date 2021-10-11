@@ -86,7 +86,6 @@ fi
 
 #ulimit -n 100000
 
-
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
 WORKERS_LOG=${LOGS_DIR}/worker-${HOSTNAME}_log.txt
 
@@ -106,6 +105,8 @@ function buildTcpArgs {
     WORKER_ARGS="--rmm-pool-size=$WORKER_RMM_POOL_SIZE
              --local-directory=/tmp/$LOGNAME 
              --scheduler-file=$SCHEDULER_FILE
+             --memory-limit=$DASK_HOST_MEMORY_LIMIT
+             --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
             "
 
 }
@@ -135,6 +136,8 @@ function buildUCXWithInfinibandArgs {
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE
+                --memory-limit=$DASK_HOST_MEMORY_LIMIT
+                --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
                 "
 }
 
@@ -166,6 +169,8 @@ function buildUCXwithoutInfinibandArgs {
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE
+                --memory-limit=$DASK_HOST_MEMORY_LIMIT
+                --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
                 "
 }
 
