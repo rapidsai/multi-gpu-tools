@@ -46,7 +46,7 @@ PROJECT_REPO_BRANCH=""
 
 if hasArg --from-conda; then
     # FIXME: do not hardcode this module load
-    module load cuda/11.0.3
+    module load cuda/11.2
     activateCondaEnv
 
     # output format is: name version build channel
