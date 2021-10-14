@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this is project-specific and should happen at the project level.
-module load cuda/11.2
+module load cuda/11.2.2.0
 activateCondaEnv
 
 # FIXME: enforce 1st arg is present
