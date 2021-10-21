@@ -189,8 +189,6 @@ num_scheduler_tries=0
 
 function startScheduler {
     mkdir -p $(dirname $SCHEDULER_FILE)
-    $SCHEDULER_FILE
-    ls $WORKSPACE
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
     python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
@@ -200,10 +198,7 @@ mkdir -p $LOGS_DIR
 logger "Logs written to: $LOGS_DIR"
 
 if [[ $START_SCHEDULER == 1 ]]; then
-    $SCHEDULER_FILE
-    ls $WORKSPACE
     rm -f $SCHEDULER_FILE $SCHEDULER_LOG $WORKERS_LOG
-    ls $WORKSPACE
 
     startScheduler
     sleep 6
@@ -237,8 +232,6 @@ if [[ $START_WORKERS == 1 ]]; then
     while [ ! -f "$SCHEDULER_FILE" ]; do
         echo "run-dask-process.sh: $SCHEDULER_FILE not present - waiting to start workers..."
         sleep 2
-        $SCHEDULER_FILE
-        ls $WORKSPACE
     done
     echo "RUNNING: \"python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
     python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &

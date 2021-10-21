@@ -39,9 +39,9 @@ fi
 # NOTE: if the LOGS_DIR env var is exported from the calling env, it
 # will be used by run-dask-process.sh as the log location.
 if [[ $RUN_SCHEDULER == 1 ]]; then
-    ${SCRIPTS_DIR}/run-dask-process.sh scheduler workers &
+    ${SCRIPTS_DIR}/run-dask-process.sh scheduler workers
 else
-    ${SCRIPTS_DIR}/run-dask-process.sh workers &
+    ${SCRIPTS_DIR}/run-dask-process.sh workers
 fi
 
 
