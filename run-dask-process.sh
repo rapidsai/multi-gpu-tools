@@ -189,6 +189,8 @@ num_scheduler_tries=0
 
 function startScheduler {
     mkdir -p $(dirname $SCHEDULER_FILE)
+    $SCHEDULER_FILE
+    ls $WORKSPACE
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
     python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
@@ -198,11 +200,16 @@ mkdir -p $LOGS_DIR
 logger "Logs written to: $LOGS_DIR"
 
 if [[ $START_SCHEDULER == 1 ]]; then
+    $SCHEDULER_FILE
+    ls $WORKSPACE
     rm -f $SCHEDULER_FILE $SCHEDULER_LOG $WORKERS_LOG
+    ls $WORKSPACE
 
     startScheduler
     sleep 6
-    num_scheduler_tries=$(echo $num_scheduler_tries+1 | bc)
+    # FIXME: find a substitute for this
+    num_scheduler_tries=$((num_scheduler_tries+1))
+    #num_scheduler_tries=$(echo $num_scheduler_tries+1 | bc)
     
     # Wait for the scheduler to start first before proceeding, since
     # it may require several retries (if prior run left ports open
@@ -214,7 +221,8 @@ if [[ $START_SCHEDULER == 1 ]]; then
                 echo "scheduler failed to start, retry #$num_scheduler_tries"
                 startScheduler
                 sleep 6
-                num_scheduler_tries=$(echo $num_scheduler_tries+1 | bc)
+                #num_scheduler_tries=$(echo $num_scheduler_tries+1 | bc)
+                num_scheduler_tries=$((num_scheduler_tries+1))
             else
                 echo "could not start scheduler, exiting."
                 exit 1
@@ -229,6 +237,8 @@ if [[ $START_WORKERS == 1 ]]; then
     while [ ! -f "$SCHEDULER_FILE" ]; do
         echo "run-dask-process.sh: $SCHEDULER_FILE not present - waiting to start workers..."
         sleep 2
+        $SCHEDULER_FILE
+        ls $WORKSPACE
     done
     echo "RUNNING: \"python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
     python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &

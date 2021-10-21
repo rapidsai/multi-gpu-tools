@@ -19,10 +19,12 @@ THIS_DIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
 # file that should not be overridded by a project, then they will
 # simply not use that syntax and override, since these variables are
 # read last.
+
+
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$THIS_DIR}
 OUTPUT_DIR=${OUTPUT_DIR:-$(pwd)}
 RESULTS_ARCHIVE_DIR=${RESULTS_ARCHIVE_DIR:-${OUTPUT_DIR}/results}
-RESULTS_DIR=${RESULTS_DIR:-${RESULTS_ARCHIVE_DIR}/latest}
+RESULTS_DIR=${RESULTS_DIR:-${RESULTS_ARCHIVE_DIR}/latest}  #<<<<<<<<<<<<<  Change here
 METADATA_FILE=${METADATA_FILE:-${RESULTS_DIR}/metadata.sh}
 WORKSPACE=${WORKSPACE:-${OUTPUT_DIR}/workspace}
 TESTING_DIR=${TESTING_DIR:-${WORKSPACE}/testing}
@@ -42,6 +44,7 @@ DASK_CUDA_INTERFACE=${DASK_CUDA_INTERFACE:-ib0}
 DASK_SCHEDULER_PORT=${DASK_SCHEDULER_PORT:-8792}
 
 BUILD_LOG_FILE=${BUILD_LOG_FILE:-${RESULTS_DIR}/build_log.txt}
+
 SCHEDULER_FILE=${SCHEDULER_FILE:-${WORKSPACE}/dask-scheduler.json}
 
 DATE=${DATE:-$(date --utc "+%Y-%m-%d_%H:%M:%S")_UTC}
