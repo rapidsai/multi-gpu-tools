@@ -59,15 +59,22 @@ elif hasArg --from-source; then
     # FIXME: this assumes the sources are always in
     # ${WORKSPACE}/${REPO_DIR_NAME}. That should be the default and a
     # --source-dir option should be added to override.
-    PROJECT_VERSION=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --short HEAD)
+    PROJECT_VERSION=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse HEAD)
     PROJECT_REPO_URL=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git config --get remote.origin.url)
     PROJECT_REPO_BRANCH=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --abbrev-ref HEAD)
+    PROJECT_REPO_TIME=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git log -n1 --pretty='%ct' ${PROJECT_VERSION})
 
 else
     # Make the caller specify an option to make intentions clear.
     echo "ERROR: must specify either --from-source or --from-conda"
     exit 1
 fi
+
+# Remove this export
+export RESULTS_DIR=$RESULTS_DIR
+# Write benchmark info in a json file
+python $OUTPUT_DIR/benchmark_asv.py --commitHash=$PROJECT_VERSION --repo-url=$PROJECT_REPO_URL --branch=$PROJECT_REPO_BRANCH --commitTime=$PROJECT_REPO_TIME --benchmark-dir=$RESULTS_DIR --write-info
+
 
 echo "# source this file for project meta-data" > $METADATA_FILE
 echo "PROJECT_VERSION=\"$PROJECT_VERSION\"" >> $METADATA_FILE
