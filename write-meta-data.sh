@@ -70,8 +70,6 @@ else
     exit 1
 fi
 
-# Remove this export
-export RESULTS_DIR=$RESULTS_DIR
 # Write benchmark info in a json file
 python $OUTPUT_DIR/benchmark_asv.py --commitHash=$PROJECT_VERSION --repo-url=$PROJECT_REPO_URL --branch=$PROJECT_REPO_BRANCH --commitTime=$PROJECT_REPO_TIME --benchmark-dir=$RESULTS_DIR --write-info
 
