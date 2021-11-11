@@ -69,12 +69,25 @@ function unsetTee {
 # results dir name to it.
 function setupResultsDir {
     mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
+    # Create the asv results directory if it doesn't already exist
+    #mkdir -p $ASV_RESULTS_DIR
     # FIXME: do not assume RESULTS_DIR is currently a symlink, and
     # handle appropriately.if not.
+
+    PREVIOUS_ASV=$(readlink -f $RESULTS_DIR)
+    result_bool=0
+    if [[ $PREVIOUS_ASV != $RESULTS_DIR ]]; then
+        COPY_RESULTS=1
+        results=$PREVIOUS_ASV/benchmarks/results
+    fi
     rm -rf $RESULTS_DIR
     ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
     mkdir -p $TESTING_RESULTS_DIR
     mkdir -p $BENCHMARK_RESULTS_DIR
+    
+    if [[ $COPY_RESULTS == 1 ]]; then
+        cp -r $results $BENCHMARK_RESULTS_DIR
+    fi
 }
 
 
