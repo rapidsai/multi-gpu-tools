@@ -69,15 +69,15 @@ function unsetTee {
 # results dir name to it.
 function setupResultsDir {
     mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
-    # Create the asv results directory if it doesn't already exist
-    #mkdir -p $ASV_RESULTS_DIR
-    # FIXME: do not assume RESULTS_DIR is currently a symlink, and
-    # handle appropriately.if not.
-
+    # Store the target of $RESULTS_DIR before $RESULTS_DIR get linked to
+    # a different dir 
     PREVIOUS_ASV=$(readlink -f $RESULTS_DIR)
-    result_bool=0
+    # Check if $RESULTS_DIR has a target
+    # If there is no target, This is the first run and therefore there is
+    # no asv db yet
     if [[ $PREVIOUS_ASV != $RESULTS_DIR ]]; then
         COPY_RESULTS=1
+        # Store the asv db of the previous run
         results=$PREVIOUS_ASV/benchmarks/results
     fi
     rm -rf $RESULTS_DIR
@@ -86,6 +86,7 @@ function setupResultsDir {
     mkdir -p $BENCHMARK_RESULTS_DIR
     
     if [[ $COPY_RESULTS == 1 ]]; then
+        # Copy the asv db of the previous run to the current one
         cp -r $results $BENCHMARK_RESULTS_DIR
     fi
 }
