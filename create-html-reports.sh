@@ -222,3 +222,7 @@ for d in "." $ALL_DIRS; do
 </html>
 " >> $index
 done
+# The asv html dir is created at the end so that an index.html is not created for it
+if hasArg --run-asv; then
+    asv publish --config $BENCHMARK_RESULTS_DIR/asv.conf.json
+fi

@@ -72,22 +72,22 @@ function setupResultsDir {
     # Store the target of $RESULTS_DIR before $RESULTS_DIR get linked to
     # a different dir 
     PREVIOUS_ASV=$(readlink -f $RESULTS_DIR)
-    # Check if $RESULTS_DIR has a target
-    # If there is no target, This is the first run and therefore there is
-    # no asv db yet
-    if [[ $PREVIOUS_ASV != $RESULTS_DIR ]]; then
-        COPY_RESULTS=1
-        # Store the asv db of the previous run
-        results=$PREVIOUS_ASV/benchmarks/results
-    fi
+  
     rm -rf $RESULTS_DIR
     ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
     mkdir -p $TESTING_RESULTS_DIR
     mkdir -p $BENCHMARK_RESULTS_DIR
     
-    if [[ $COPY_RESULTS == 1 ]]; then
+    # Check if $RESULTS_DIR has a target
+    # If there is no target, This is the first run and therefore there is
+    # no asv db yet
+    if [[ $PREVIOUS_ASV != $RESULTS_DIR  ]]; then
         # Copy the asv db of the previous run to the current one
+        results=$PREVIOUS_ASV/benchmarks/results
         cp -r $results $BENCHMARK_RESULTS_DIR
+        # This copy ensures that we get a benchmark report link irrespective
+        # of the build failing but of the previous run.
+        cp $PREVIOUS_ASV/benchmarks/asv.conf.json $BENCHMARK_RESULTS_DIR
     fi
 }
 
