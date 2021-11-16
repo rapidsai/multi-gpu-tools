@@ -70,13 +70,10 @@ else
     exit 1
 fi
 
-# Write benchmark info in a json file
-python $OUTPUT_DIR/benchmark_asv.py --commitHash=$PROJECT_VERSION --repo-url=$PROJECT_REPO_URL --branch=$PROJECT_REPO_BRANCH --commitTime=$PROJECT_REPO_TIME --benchmark-dir=$RESULTS_DIR --write-info
-
-
 echo "# source this file for project meta-data" > $METADATA_FILE
 echo "PROJECT_VERSION=\"$PROJECT_VERSION\"" >> $METADATA_FILE
 echo "PROJECT_BUILD=\"$PROJECT_BUILD\"" >> $METADATA_FILE
 echo "PROJECT_CHANNEL=\"$PROJECT_CHANNEL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_URL=\"$PROJECT_REPO_URL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_BRANCH=\"$PROJECT_REPO_BRANCH\"" >> $METADATA_FILE
+echo "PROJECT_REPO_TIME=\"$PROJECT_REPO_TIME\"" >> $METADATA_FILE
