@@ -59,9 +59,10 @@ elif hasArg --from-source; then
     # FIXME: this assumes the sources are always in
     # ${WORKSPACE}/${REPO_DIR_NAME}. That should be the default and a
     # --source-dir option should be added to override.
-    PROJECT_VERSION=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --short HEAD)
+    PROJECT_VERSION=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse HEAD)
     PROJECT_REPO_URL=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git config --get remote.origin.url)
     PROJECT_REPO_BRANCH=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --abbrev-ref HEAD)
+    PROJECT_REPO_TIME=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git log -n1 --pretty='%ct' ${PROJECT_VERSION})
 
 else
     # Make the caller specify an option to make intentions clear.
@@ -75,3 +76,4 @@ echo "PROJECT_BUILD=\"$PROJECT_BUILD\"" >> $METADATA_FILE
 echo "PROJECT_CHANNEL=\"$PROJECT_CHANNEL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_URL=\"$PROJECT_REPO_URL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_BRANCH=\"$PROJECT_REPO_BRANCH\"" >> $METADATA_FILE
+echo "PROJECT_REPO_TIME=\"$PROJECT_REPO_TIME\"" >> $METADATA_FILE
