@@ -227,6 +227,6 @@ ASV_CONFIG_FILE=$(find ${BENCHMARK_RESULTS_DIR} -name "asv.conf.json")
 # The asv html dir is created at the end so that an index.html is not created for it
 if [ "$ASV_CONFIG_FILE" != "" ]; then
     if hasArg --run-asv; then
-        asv publish --config $BENCHMARK_RESULTS_DIR/asv.conf.json
+        asv publish --config $ASV_CONFIG_FILE
     fi
 fi
