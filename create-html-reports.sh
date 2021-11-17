@@ -223,7 +223,7 @@ for d in "." $ALL_DIRS; do
 " >> $index
 done
 
-ASV_CONFIG_FILE=$(find ${BENCHMARK_RESULTS_DIR} -name "asv.conf.json")
+ASV_CONFIG_FILE=$(find ${BENCHMARK_RESULTS_DIR}/asv -name "asv.conf.json")
 # The asv html dir is created at the end so that an index.html is not created for it
 if [ "$ASV_CONFIG_FILE" != "" ]; then
     if hasArg --run-asv; then
