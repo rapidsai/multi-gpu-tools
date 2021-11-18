@@ -110,13 +110,13 @@ for algo in ${ALGOS[*]}; do
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --benchmark-dir=$BENCHMARK_RESULTS_DIR
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 fi
             else
@@ -124,13 +124,13 @@ for algo in ${ALGOS[*]}; do
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --benchmark-dir=$BENCHMARK_RESULTS_DIR
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 fi
             fi 
