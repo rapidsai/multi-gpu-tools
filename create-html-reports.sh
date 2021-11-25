@@ -197,9 +197,6 @@ fi
 # The index.html will just contain links to the individual files and
 # subdirs present in each dir, just as if browsing in a file explorer.
 ALL_DIRS=$(find -L ${RESULTS_DIR} -path ${BENCHMARK_RESULTS_DIR}/asv/html -prune -o -type d -printf "%P\n")
-ALL_DIRS=""
-echo "all dir is "
-echo "$ALL_DIRS"
 
 for d in "." $ALL_DIRS; do
     index=${RESULTS_DIR}/${d}/index.html
