@@ -181,13 +181,22 @@ echo "</body>
 " >> $report
 
 ################################################################################
+# (optional) generate the ASV html
+if hasArg --run-asv; then
+    asv_config_file=$(find ${BENCHMARK_RESULTS_DIR}/asv -name "asv.conf.json")
+    if [ "$asv_config_file" != "" ]; then
+        asv publish --config $asv_config_file
+    fi
+fi
+
+################################################################################
 # Create an index.html for each dir (ALL_DIRS plus ".", but EXCLUDE
 # the asv html) This is needed since S3 (and probably others) will not
 # show the contents of a hosted directory by default, but will instead
 # return the index.html if present.
 # The index.html will just contain links to the individual files and
 # subdirs present in each dir, just as if browsing in a file explorer.
-ALL_DIRS=$(find -L ${RESULTS_DIR} -path ${BENCHMARKS_RESULTS_DIR}/asv/html -prune -type d -printf "%P\n")
+ALL_DIRS=$(find -L ${RESULTS_DIR} -path ${BENCHMARK_RESULTS_DIR}/asv/html -prune -o -type d -printf "%P\n")
 
 for d in "." $ALL_DIRS; do
     index=${RESULTS_DIR}/${d}/index.html
@@ -222,12 +231,3 @@ for d in "." $ALL_DIRS; do
 </html>
 " >> $index
 done
-
-################################################################################
-# (optional) generate the ASV html
-if hasArg --run-asv; then
-    asv_config_file=$(find ${BENCHMARK_RESULTS_DIR}/asv -name "asv.conf.json")
-    if [ "$asv_config_file" != "" ]; then
-        asv publish --config $asv_config_file
-    fi
-fi
