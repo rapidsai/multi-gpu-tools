@@ -62,64 +62,68 @@ cd $TESTING_DIR
 DATASETS_DIR=/gpfs/fs1/jnke/datasets
 export RAPIDS_DATASET_ROOT_DIR=$DATASETS_DIR
 
+
 # FIXME: change or make the test glob a variable or parameter since
 # this is cugraph-specific.
 
 
-if [[ $NUM_NODES -gt 1 ]]; then
-    # Starting the benchmark
-    echo "STARTED" > ${STATUS_FILE}
-        
-    # setup the cluster: Each node regardless of if it will be use as a scheduler
-    # too is starting the cluster
-        
-    bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
-    RUN_DASK_CLUSTER_PID=$!
-    sleep 25
-fi
-
 # Only a node with a SLURM_NODEID 1 or a SNMG can proceed with the rest of the nightly scrip
 # This avoid code duplication and a lot of if statement
-if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
+#if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
 # Create a results dir unique for this run
 #setupResultsDir
-    for test_file in tests/dask/test_mg_*.py; do
-        sleep 5
-        # Create a log dir per test file per configuration. This will
-        # contain all dask scheduler/worker logs, the stdout/stderr of the
-        # test run itself, and any reports (XML, etc.) from the test run
-        # for the test file.  Export this var so called scripts will pick
-        # it up.
+for test_file in tests/dask/test_mg_*.py; do
+    # sleep 5
+    # Create a log dir per test file per configuration. This will
+    # contain all dask scheduler/worker logs, the stdout/stderr of the
+    # test run itself, and any reports (XML, etc.) from the test run
+    # for the test file.  Export this var so called scripts will pick
+    # it up.
+    RELATIVE_LOGS_DIR="$(basename --suffix=.py $test_file)/${NUM_GPUS}-GPUs"
+    export LOGS_DIR="${TESTING_RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
+    mkdir -p $LOGS_DIR
 
-        DASK_STARTUP_ERRORCODE=0
-        if [[ $NUM_NODES -gt 1 ]]; then
+    setTee ${LOGS_DIR}/pytest_output_log.txt
+    echo -e "\n>>>>>>>> RUNNING TESTS FROM: $test_file - ${NUM_GPUS}-GPUs <<<<<<<<"
 
+
+    DASK_STARTUP_ERRORCODE=0
+    if [[ $NUM_NODES -gt 1 ]]; then
+            
+        if [[ $SLURM_NODEID != 1 ]]; then
+            # wait for the node starting the scheduler
+            sleep 5
+        fi
+        # setup the cluster: Each node regardless of if it will be use as a scheduler
+        # too is running this script
+        bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
+
+        # Only Node 1 is starting the scheduler 
+        if [[ $SLURM_NODEID == 1 ]]; then
+            export UCX_MAX_RNDV_RAILS=1
+            # python tests will look for env var SCHEDULER_FILE when
+            # determining what type of Dask cluster to create, so export
+            # it here for subprocesses to see.
             export SCHEDULER_FILE=$SCHEDULER_FILE
 
             # Remove the handleTimeout and DASK_STARTUP_ERRORCODE
             # if want to debug for the scheduler file not being found
+            # Starting the benchmark
+            echo "STARTED" > ${STATUS_FILE}
             handleTimeout 120 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
                 --num-expected-workers ${NUM_GPUS} \
                 --scheduler-file-path ${SCHEDULER_FILE} \
                 --timeout-after 60
 
             DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
-            
-        else
-            export CUDA_VISIBLE_DEVICES=$ALL_GPU_IDS
-            logger "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
         fi
+        
+    else
+        export CUDA_VISIBLE_DEVICES=$ALL_GPU_IDS
+        logger "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+    fi
 
-
-        RELATIVE_LOGS_DIR="$(basename --suffix=.py $test_file)/${NUM_GPUS}-GPUs"
-        export LOGS_DIR="${TESTING_RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
-        mkdir -p $LOGS_DIR
-
-        setTee ${LOGS_DIR}/pytest_output_log.txt
-        echo -e "\n>>>>>>>> RUNNING TESTS FROM: $test_file - ${NUM_GPUS}-GPUs <<<<<<<<"
-
-        DASK_STARTUP_ERRORCODE=0
-
+    if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then 
 
         if [[ $DASK_STARTUP_ERRORCODE == 0 ]]; then
             logger "RUNNING: pytest -v -s --cache-clear --no-cov $test_file"
@@ -142,52 +146,32 @@ if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
             test_status_string=FAILED
         fi
         echo "$test_file $test_status_string ./${RELATIVE_LOGS_DIR}" >> ${TESTING_RESULTS_DIR}/pytest-results-${NUM_GPUS}-GPUs.txt
-        
-    done
-    # Only MNMG uses a status file to communicate 
-    if [[ $NUM_NODES -gt 1 ]]; then
-        echo "FINISHED" > ${STATUS_FILE}
-        sleep 2
-        rm -rf ${STATUS_FILE}
+
+        # Only MNMG uses a status file to communicate
+        if [[ $NUM_NODES -gt 1 ]]; then
+            echo "FINISHED" > ${STATUS_FILE}
+            sleep 2
+            rm -rf ${STATUS_FILE}
+        fi
+    
+    else
+        if [[ $NUM_NODES -gt 1 ]]; then
+            # This is targetting the workers node which are not used as schedulers
+            # Wait for a signal from the status file only if there are more than 1 node
+            until grep -q "FINISHED" "${STATUS_FILE}"
+            do
+                sleep 1
+            done
+            sleep 2
+        fi
     fi
 
-
-else
-    # This is targetting the workers node which are not used as schedulers
-    # Wait for a signal from the status file only if there are more than 1 node
-    if [[ $NUM_NODES -gt 1 ]]; then
-        until grep -q "FINISHED" "${STATUS_FILE}"
-        do
-            sleep 1
-        done
-        # The nodes not being used as schedulers need to wait until the node
-        # that does write to the scheduler
-        sleep 10
-    fi
-fi
-
-if [[ $NUM_NODES -gt 1 ]]; then
-    # Killing the script running all Dask processes on all nodes
-    # (scheduler, all workers) will stop those processes. The nodes
-    # running those processes will still be allocated to this job,
-    # and can/will be used to run the same Dask processes again
-    # for the next test.
-
-    kill $RUN_DASK_CLUSTER_PID
-
-    pkill dask
-    pkill python
-    #pgrep -la dask
-    #pgrep -la python
-else
-    logger "stopping any remaining dask/python processes"
-    pkill dask
-    pkill python
+    # At this stage there should be no running processes except /usr/lpp/mmfs/bin/mmsysmon.py
     pgrep -la dask
     pgrep -la python
-fi
+    sleep 2
 
-sleep 5
+done
 
 logger "Exiting \"run-py-tests.sh $NUM_GPUS\" with $ERRORCODE"
 exit $ERRORCODE

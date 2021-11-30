@@ -19,7 +19,12 @@ source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this is project-specific and should happen at the project level.
 #module load cuda/11.0.3
-#activateCondaEnv
+#eval "$(conda shell.bash hook)"
+echo "in run-nightly-benchmarks bfore activating conda"
+conda info --envs
+
+#conda activate /gpfs/fs1/jnke/miniconda3/envs/cugraph_test_2
+activateCondaEnv
 
 
 
@@ -30,7 +35,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("9" "10" "11")
-ALGOS=(bfs sssp pagerank wcc louvain katz)
+ALGOS=(bfs pagerank wcc louvain katz sssp)
 #ALGOS=(bfs sssp)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
@@ -63,7 +68,6 @@ function handleTimeout {
 set +e
 set -o pipefail
 ERRORCODE=0
-RUN_DASK_CLUSTER_PID=""
 
 
 ########################################
@@ -73,54 +77,58 @@ cd $BENCHMARK_DIR
 export RAPIDS_DATASET_ROOT_DIR=$DATASETS_DIR
 
 
-if [[ $NUM_NODES -gt 1 ]]; then
-    # Starting the benchmark
-    echo "STARTED" > ${STATUS_FILE}
-    
-    # setup the cluster: Each node regardless of if it will be use as a scheduler
-    # too is starting the cluster
-    
-    bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
-    RUN_DASK_CLUSTER_PID=$!
-    sleep 25
-fi
-
-
-
 # Only a node with a SLURM_NODEID 1 or a SNMG can proceed with the rest of the nightly scrip
 # This avoid code duplication and a lot of if statement
-if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
-    for algo in ${ALGOS[*]}; do
-        for scale in ${scales_array[*]}; do
+#if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
+for algo in ${ALGOS[*]}; do
+    for scale in ${scales_array[*]}; do
 
-            # Create a log dir per benchamrk file per configuration. This will
-            # contain all dask scheduler/worker logs, the stdout/stderr of the
-            # benchmark run itself, and any reports (XML, etc.) from the benchmark run
-            # for the benchmark file.  Export this var so called scripts will pick
-            # it up.
-            
-            DASK_STARTUP_ERRORCODE=0
-            if [[ $NUM_NODES -gt 1 ]]; then
+        # Create a log dir per benchamrk file per configuration. This will
+        # contain all dask scheduler/worker logs, the stdout/stderr of the
+        # benchmark run itself, and any reports (XML, etc.) from the benchmark run
+        # for the benchmark file.  Export this var so called scripts will pick
+        # it up.
+        RELATIVE_LOGS_DIR="${algo}_scale${scale}_num_nodes${NUM_NODES}/${NUM_GPUS}-GPUs"
+        export LOGS_DIR="${BENCHMARK_RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
+        mkdir -p $LOGS_DIR
 
+        setTee ${LOGS_DIR}/benchmark_output_log.txt
+        
+        DASK_STARTUP_ERRORCODE=0
+        if [[ $NUM_NODES -gt 1 ]]; then
+
+            if [[ $SLURM_NODEID != 1 ]]; then
+                # wait for the node starting the scheduler
+                sleep 5
+            fi
+            # setup the cluster: Each node regardless of if it will be use as a scheduler
+            # too is running this script
+            bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
+
+
+            # Only Node 1 is starting the scheduler 
+            if [[ $SLURM_NODEID == 1 ]]; then
+                export UCX_MAX_RNDV_RAILS=1
+                # python tests will look for env var SCHEDULER_FILE when
+                # determining what type of Dask cluster to create, so export
+                # it here for subprocesses to see.
                 export SCHEDULER_FILE=$SCHEDULER_FILE
-
+                
+                echo "STARTED" > ${STATUS_FILE}
                 handleTimeout 120 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
                     --num-expected-workers ${NUM_GPUS} \
                     --scheduler-file-path ${SCHEDULER_FILE} \
                     --timeout-after 60
 
                 DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
-            
-            else
-                export CUDA_VISIBLE_DEVICES=$ALL_GPU_IDS
-                logger "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
             fi
+        
+        else
+            export CUDA_VISIBLE_DEVICES=$ALL_GPU_IDS
+            logger "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+        fi
 
-            RELATIVE_LOGS_DIR="${algo}_scale${scale}_num_nodes${NUM_NODES}/${NUM_GPUS}-GPUs"
-            export LOGS_DIR="${BENCHMARK_RESULTS_DIR}/${RELATIVE_LOGS_DIR}"
-            mkdir -p $LOGS_DIR
-
-            setTee ${LOGS_DIR}/benchmark_output_log.txt
+        if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then 
             echo -e "\n>>>>>>>> RUNNING BENCHMARK: $algo - ${NUM_GPUS}-GPUs <<<<<<<<"
             echo -e "\n>>>>>>>>>>>Scale: $scale"
 
@@ -169,70 +177,38 @@ if [[ $SLURM_NODEID == 1 || $NUM_NODES == 1 ]]; then
             unsetTee
 
             # Generate a crude report containing the status of each benchmark file.
-            
             benchmark_status_string=PASSED
             if [[ $BENCHMARK_ERRORCODE != 0 ]]; then
                 benchmark_status_string=FAILED
             fi
-            echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
             
+            echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
+            # Only MNMG runs use a status file to communicate
+            if [[ $NUM_NODES -gt 1 ]]; then
+                echo "FINISHED" > ${STATUS_FILE}
+                sleep 2
+                rm -rf ${STATUS_FILE}
+            fi
+        else
+            if [[ $NUM_NODES -gt 1 ]]; then
+                # This is targetting the workers node which are not used as schedulers
+                # Wait for a signal from the status file only if there are more than 1 node
+                until grep -q "FINISHED" "${STATUS_FILE}"
+                do
+                    sleep 1
+                done
+                sleep 2
+            fi
+        fi
 
-        done
-    done
-
-# Only MNMG uses a status file to communicate 
-    if [[ $NUM_NODES -gt 1 ]]; then
-        echo "FINISHED" > ${STATUS_FILE}
+        # At this stage there should be no running processes except /usr/lpp/mmfs/bin/mmsysmon.py
+        pgrep -la dask
+        pgrep -la python
+        
         sleep 2
-        rm -rf ${STATUS_FILE}
-    fi
 
-else
-    # This is targetting the workers node which are not used as schedulers
-    # Wait for a signal from the status file only if there are more than 1 node
-    if [[ $NUM_NODES -gt 1 ]]; then
-        until grep -q "FINISHED" "${STATUS_FILE}"
-        do
-            sleep 1
-        done
-        # The nodes not being used as schedulers need to wait until the node
-        # that does write to the scheduler
-        sleep 5
-    fi
-fi
-
-
-# FIXME: This script is using the same cluster and scheduler instead of
-# creating a new one
-if [[ $NUM_NODES -gt 1 ]]; then
-    # Killing the script running all Dask processes on all nodes
-    # (scheduler, all workers) will stop those processes. The nodes
-    # running those processes will still be allocated to this job,
-    # and can/will be used to run the same Dask processes again
-    # for the next benchmark.
-
-    # FIXME: Killing the Process ID of run-cluster-dask-jobs.sh is not working
-    # the same way as in the non container based
-    kill $RUN_DASK_CLUSTER_PID
-
-    pkill dask
-    pkill python
-    pgrep -la dask
-    pgrep -la python
-    
-    #kill dask
-    #pkill python
-else
-    #logger "stopping any remaining dask/python processes"
-    pkill dask
-    pkill python
-    pgrep -la dask
-    pgrep -la python
-fi
-
-sleep 5
-
+    done
+done
 
 logger "Exiting \"run-nightly-benchmarks.sh $NUM_GPUS\" with $ERRORCODE"
-
 exit $ERRORCODE
