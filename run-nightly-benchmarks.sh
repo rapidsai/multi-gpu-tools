@@ -35,8 +35,9 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("9" "10" "11")
-ALGOS=(bfs pagerank wcc louvain katz sssp)
-#ALGOS=(bfs sssp)
+#ALGOS=(bfs pagerank wcc louvain katz sssp)
+ALGOS=(bfs sssp pagerank wcc louvain katz)
+#ALGOS=(pagerank)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
 scales_array=${SCALES[((NUM_NODES/2))]}
@@ -105,10 +106,10 @@ for algo in ${ALGOS[*]}; do
             # too is running this script
             bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
 
-
+            export UCX_MAX_RNDV_RAILS=1
             # Only Node 1 is starting the scheduler 
             if [[ $SLURM_NODEID == 1 ]]; then
-                export UCX_MAX_RNDV_RAILS=1
+                #export UCX_MAX_RNDV_RAILS=1
                 # python tests will look for env var SCHEDULER_FILE when
                 # determining what type of Dask cluster to create, so export
                 # it here for subprocesses to see.
