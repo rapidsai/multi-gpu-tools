@@ -20,6 +20,7 @@ source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 # FIXME: this is project-specific and should happen at the project level.
 # Pass this as an option 
 #module load cuda/11.0.3
+activateCondaEnv
 
 # FIXME: enforce 1st arg is present
 NUM_GPUS=$1
