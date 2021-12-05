@@ -113,10 +113,9 @@ for test_file in tests/dask/test_mg_*.py; do
             # if want to debug for the scheduler file not being found
             # Starting the benchmark
             echo "STARTED" > ${STATUS_FILE}
-            handleTimeout 120 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
+            handleTimeout 600 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
                 --num-expected-workers ${NUM_GPUS} \
                 --scheduler-file-path ${SCHEDULER_FILE} \
-                --timeout-after 60
 
             DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
         fi
@@ -153,18 +152,28 @@ for test_file in tests/dask/test_mg_*.py; do
         # Only MNMG uses a status file to communicate
         if [[ $NUM_NODES -gt 1 ]]; then
             echo "FINISHED" > ${STATUS_FILE}
+
+            # Wait for the other nodes to read the status file
             sleep 2
             rm -rf ${STATUS_FILE}
         fi
     
     else
         if [[ $NUM_NODES -gt 1 ]]; then
+            # Wait for the node holding both the scheduler and the workers to create the status file
+            while [ ! -f "${STATUS_FILE}" ]
+            do
+                # FIXME: use Inotify wait to exit the loop once event occurs without having to sleep
+                sleep 1
+            done
             # This is targetting the workers node which are not used as schedulers
             # Wait for a signal from the status file only if there are more than 1 node
             until grep -q "FINISHED" "${STATUS_FILE}"
             do
+                # FIXME: use Inotify wait to exit the loop once event occurs without having to sleep
                 sleep 1
             done
+            # Pause the supporting nodes to avoid a race conditions with the main node(SLURM_NODEID == 1)
             sleep 2
         fi
     fi
@@ -176,7 +185,7 @@ for test_file in tests/dask/test_mg_*.py; do
     echo "$python_processes"
 
     if [[ ${#python_processes[@]} -gt 1 || $dask_processes ]]; then
-        logger "The client was not shutdown properly, killing dask/python processes"
+        logger "The client was not shutdown properly, killing dask/python processes for Node $SLURM_NODEID"
         # This can be caused by a job timeout
         pkill python
         pkill dask

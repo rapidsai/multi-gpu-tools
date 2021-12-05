@@ -92,11 +92,6 @@ for algo in ${ALGOS[*]}; do
         DASK_STARTUP_ERRORCODE=0
         if [[ $NUM_NODES -gt 1 ]]; then
 
-            if [[ $SLURM_NODEID != 1 ]]; then
-                # wait for the node starting the scheduler
-                sleep 5
-            fi
-
             # Export this for all node. If this is only exported for the with
             # SLURM_NODEID == 1, it causes a renumbering failure
             export UCX_MAX_RNDV_RAILS=1
@@ -104,7 +99,7 @@ for algo in ${ALGOS[*]}; do
             # setup the cluster: Each node regardless it is being used as a scheduler
             # is running this part of the script
             bash ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
-            
+
             # Only Node 1 is starting the scheduler 
             if [[ $SLURM_NODEID == 1 ]]; then
                 # python tests will look for env var SCHEDULER_FILE when
@@ -113,7 +108,9 @@ for algo in ${ALGOS[*]}; do
                 export SCHEDULER_FILE=$SCHEDULER_FILE
                 
                 echo "STARTED" > ${STATUS_FILE}
-                handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py \
+                # increase the timeout because some nodes take much longer to start
+                # their container
+                handleTimeout 600 python ${SCRIPTS_DIR}/wait_for_workers.py \
                     --num-expected-workers ${NUM_GPUS} \
                     --scheduler-file-path ${SCHEDULER_FILE}
 
@@ -183,17 +180,27 @@ for algo in ${ALGOS[*]}; do
             # Only MNMG runs use a status file to communicate
             if [[ $NUM_NODES -gt 1 ]]; then
                 echo "FINISHED" > ${STATUS_FILE}
+
+                # Wait for the other nodes to read the status file
                 sleep 2
                 rm -rf ${STATUS_FILE}
             fi
         else
             if [[ $NUM_NODES -gt 1 ]]; then
+                # Wait for the node holding both the scheduler and the workers to create the status file
+                while [ ! -f "${STATUS_FILE}" ]
+                do
+                    # FIXME: use Inotify wait to exit the loop once event occurs without having to sleep
+                    sleep 1
+                done
                 # This is targetting the workers node which are not used as schedulers
                 # Wait for a signal from the status file only if there are more than 1 node
                 until grep -q "FINISHED" "${STATUS_FILE}"
                 do
+                    # FIXME: use Inotify wait to exit the loop once event occurs without having to sleep
                     sleep 1
                 done
+                # Pause the supporting nodes to avoid a race conditions with the main node(SLURM_NODEID == 1)
                 sleep 2
             fi
         fi
@@ -202,11 +209,11 @@ for algo in ${ALGOS[*]}; do
         #pgrep -la dask
         dask_processes=$(pgrep -la dask)
         python_processes=$(pgrep -la python)
-        echo "$dask_processes"
-        echo "$python_processes"
+        echo "Node $SLURM_NODEID dask processes: $dask_processes"
+        echo "Node $SLURM_NODEID dask processes: $python_processes"
 
         if [[ ${#python_processes[@]} -gt 1 || $dask_processes ]]; then
-            logger "The client was not shutdown properly, killing dask/python processes"
+            logger "The client was not shutdown properly, killing dask/python processes for Node $SLURM_NODEID"
             # This can be caused by a job timeout
             pkill python
             pkill dask
