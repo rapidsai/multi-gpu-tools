@@ -59,7 +59,6 @@ RUN_DASK_CLUSTER_PID=""
 
 cd $TESTING_DIR
 
-DATASETS_DIR=/gpfs/fs1/jnke/datasets
 export RAPIDS_DATASET_ROOT_DIR=$DATASETS_DIR
 
 
@@ -94,13 +93,17 @@ for test_file in tests/dask/test_mg_*.py; do
             # wait for the node starting the scheduler
             sleep 5
         fi
+
+        # Export this for all node. If this is only exported for the with
+        # SLURM_NODEID == 1, it causes a renumbering failure
+        export UCX_MAX_RNDV_RAILS=1
+
         # setup the cluster: Each node regardless of if it will be use as a scheduler
         # too is running this script
         bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
 
         # Only Node 1 is starting the scheduler 
         if [[ $SLURM_NODEID == 1 ]]; then
-            export UCX_MAX_RNDV_RAILS=1
             # python tests will look for env var SCHEDULER_FILE when
             # determining what type of Dask cluster to create, so export
             # it here for subprocesses to see.
@@ -167,8 +170,19 @@ for test_file in tests/dask/test_mg_*.py; do
     fi
 
     # At this stage there should be no running processes except /usr/lpp/mmfs/bin/mmsysmon.py
-    pgrep -la dask
-    pgrep -la python
+    dask_processes=$(pgrep -la dask)
+    python_processes=$(pgrep -la python)
+    echo "$dask_processes"
+    echo "$python_processes"
+
+    if [[ ${#python_processes[@]} -gt 1 || $dask_processes ]]; then
+        logger "The client was not shutdown properly, killing dask/python processes"
+        # This can be caused by a job timeout
+        pkill python
+        pkill dask
+        pgrep -la python
+        pgrep -la dask
+    fi
     sleep 2
 
 done

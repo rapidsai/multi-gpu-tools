@@ -18,15 +18,8 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this is project-specific and should happen at the project level.
+# Pass this as an option 
 #module load cuda/11.0.3
-#eval "$(conda shell.bash hook)"
-echo "in run-nightly-benchmarks bfore activating conda"
-conda info --envs
-
-#conda activate /gpfs/fs1/jnke/miniconda3/envs/cugraph_test_2
-activateCondaEnv
-
-
 
 # FIXME: enforce 1st arg is present
 NUM_GPUS=$1
@@ -36,7 +29,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
 SCALES=("9" "10" "11")
 #ALGOS=(bfs pagerank wcc louvain katz sssp)
-ALGOS=(bfs sssp pagerank wcc louvain katz)
+ALGOS=(bfs sssp pagerank louvain katz wcc)
 #ALGOS=(pagerank)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
 WEIGHTED_ALGOS=(sssp)
@@ -102,24 +95,26 @@ for algo in ${ALGOS[*]}; do
                 # wait for the node starting the scheduler
                 sleep 5
             fi
-            # setup the cluster: Each node regardless of if it will be use as a scheduler
-            # too is running this script
-            bash ${RAPIDS_MG_TOOLS_DIR}/run-cluster-dask-jobs.sh &
 
+            # Export this for all node. If this is only exported for the with
+            # SLURM_NODEID == 1, it causes a renumbering failure
             export UCX_MAX_RNDV_RAILS=1
+
+            # setup the cluster: Each node regardless it is being used as a scheduler
+            # is running this part of the script
+            bash ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
+            
             # Only Node 1 is starting the scheduler 
             if [[ $SLURM_NODEID == 1 ]]; then
-                #export UCX_MAX_RNDV_RAILS=1
                 # python tests will look for env var SCHEDULER_FILE when
                 # determining what type of Dask cluster to create, so export
                 # it here for subprocesses to see.
                 export SCHEDULER_FILE=$SCHEDULER_FILE
                 
                 echo "STARTED" > ${STATUS_FILE}
-                handleTimeout 120 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
+                handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py \
                     --num-expected-workers ${NUM_GPUS} \
-                    --scheduler-file-path ${SCHEDULER_FILE} \
-                    --timeout-after 60
+                    --scheduler-file-path ${SCHEDULER_FILE}
 
                 DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
             fi
@@ -138,29 +133,29 @@ for algo in ${ALGOS[*]}; do
                 if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                     if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
                         if [[ $NUM_NODES -gt 1 ]]; then
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                         else
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                         fi
                     else
                         if [[ $NUM_NODES -gt 1 ]]; then
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                         else
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                         fi
                     fi
                 else
                     if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
                         if [[ $NUM_NODES -gt 1 ]]; then
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                         else
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                         fi
                     else
                         if [[ $NUM_NODES -gt 1 ]]; then
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                         else
-                            handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
+                            handleTimeout 180 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                         fi
                     fi
                 fi 
@@ -203,8 +198,26 @@ for algo in ${ALGOS[*]}; do
         fi
 
         # At this stage there should be no running processes except /usr/lpp/mmfs/bin/mmsysmon.py
-        pgrep -la dask
-        pgrep -la python
+        #pgrep -la dask
+        dask_processes=$(pgrep -la dask)
+        python_processes=$(pgrep -la python)
+        echo "$dask_processes"
+        echo "$python_processes"
+
+        if [[ ${#python_processes[@]} -gt 1 || $dask_processes ]]; then
+            logger "The client was not shutdown properly, killing dask/python processes"
+            # This can be caused by a job timeout
+            pkill python
+            pkill dask
+            pgrep -la python
+            pgrep -la dask
+        fi
+        
+        #pgrep -la python
+
+        # Make sure there is only one process running which is /usr/lpp/mmfs/bin/mmsysmon.py
+        # otherwise force kill every process so that the other benchmarks  down the stream won't
+        # be affected
         
         sleep 2
 

@@ -33,9 +33,9 @@ function logger {
 _origFileDescriptorsSaved=0
 function setTee {
     if [[ $_origFileDescriptorsSaved == 0 ]]; then
-	# Save off the original file descr 1 and 2 as 3 and 4
-	exec 3>&1 4>&2
-	_origFileDescriptorsSaved=1
+        # Save off the original file descr 1 and 2 as 3 and 4
+        exec 3>&1 4>&2
+        _origFileDescriptorsSaved=1
     fi
     teeFile=$1
     # Create a named pipe.
@@ -58,10 +58,10 @@ function setTee {
 # call to setTee.
 function unsetTee {
     if [[ $_origFileDescriptorsSaved == 1 ]]; then
-	# Close the current fd 1 and 2 which should stop the tee
-	# process, then restore 1 and 2 to original (saved as 3, 4).
-	exec 1>&- 2>&-
-	exec 1>&3 2>&4
+        # Close the current fd 1 and 2 which should stop the tee
+        # process, then restore 1 and 2 to original (saved as 3, 4).
+        exec 1>&- 2>&-
+        exec 1>&3 2>&4
     fi
 }
 
@@ -69,12 +69,19 @@ function unsetTee {
 # results dir name to it.
 function setupResultsDir {
     mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
-    # FIXME: do not assume RESULTS_DIR is currently a symlink, and
-    # handle appropriately.if not.
+    # Store the target of $RESULTS_DIR before $RESULTS_DIR get linked to
+    # a different dir 
+    previous_results=$(readlink -f $RESULTS_DIR)
+  
     rm -rf $RESULTS_DIR
     ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
     mkdir -p $TESTING_RESULTS_DIR
     mkdir -p $BENCHMARK_RESULTS_DIR
+    
+    old_asv_dir=$previous_results/benchmarks/asv
+    if [ -d $old_asv_dir ]; then
+        cp -r $old_asv_dir $BENCHMARK_RESULTS_DIR
+    fi
 }
 
 
@@ -85,9 +92,9 @@ function getNonLinkedFileName {
     linkname=$1
     targetname=$(readlink -f $linkname)
     if [[ "$targetname" != "" ]]; then
-	echo $targetname
+        echo $targetname
     else
-	echo $linkname
+        echo $linkname
     fi
 }
 
@@ -96,8 +103,8 @@ function waitForSlurmJobsToComplete {
     jobs=$(python -c "print(\",\".join(\"$ids\".split()))") # make a comma-separated list
     jobsInQueue=$(squeue --noheader --jobs=$jobs)
     while [[ $jobsInQueue != "" ]]; do
-	sleep 2
-	jobsInQueue=$(squeue --noheader --jobs=$jobs)
+        sleep 2
+        jobsInQueue=$(squeue --noheader --jobs=$jobs)
     done
 }
 
@@ -115,11 +122,11 @@ function cloneRepo {
     pushd $dest_dir > /dev/null
     logger "Clone $repo_url in $dest_dir..."
     if [ -d $repo_name ]; then
-	rm -rf $repo_name
-	if [ -d $repo_name ]; then
-	    echo "ERROR: ${dest_dir}/$repo_name was not completely removed."
-	    error 1
-	fi
+        rm -rf $repo_name
+        if [ -d $repo_name ]; then
+            echo "ERROR: ${dest_dir}/$repo_name was not completely removed."
+            error 1
+        fi
     fi
     git clone $repo_url
     popd > /dev/null
@@ -130,9 +137,8 @@ function cloneRepo {
 # its functions.sh file that was previously source'd.
 if [[ $(type -t activateCondaEnv) == "" ]]; then
     function activateCondaEnv {
-	logger "Activating conda env ${CONDA_ENV}..."
-	eval "$(conda shell.bash hook)"
-	conda activate $CONDA_ENV
+        logger "Activating conda env ${CONDA_ENV}..."
+        eval "$(conda shell.bash hook)"
+        conda activate $CONDA_ENV
     }
 fi
-
