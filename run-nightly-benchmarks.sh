@@ -110,7 +110,7 @@ for algo in ${ALGOS[*]}; do
                 echo "STARTED" > ${STATUS_FILE}
                 # increase the timeout because some nodes take much longer to start
                 # their container
-                handleTimeout 600 python ${SCRIPTS_DIR}/wait_for_workers.py \
+                handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py \
                     --num-expected-workers ${NUM_GPUS} \
                     --scheduler-file-path ${SCHEDULER_FILE}
 
@@ -209,8 +209,8 @@ for algo in ${ALGOS[*]}; do
         #pgrep -la dask
         dask_processes=$(pgrep -la dask)
         python_processes=$(pgrep -la python)
-        echo "Node $SLURM_NODEID dask processes: $dask_processes"
-        echo "Node $SLURM_NODEID dask processes: $python_processes"
+        #echo "Node $SLURM_NODEID dask processes: $dask_processes"
+        #echo "Node $SLURM_NODEID dask processes: $python_processes"
 
         if [[ ${#python_processes[@]} -gt 1 || $dask_processes ]]; then
             logger "The client was not shutdown properly, killing dask/python processes for Node $SLURM_NODEID"
