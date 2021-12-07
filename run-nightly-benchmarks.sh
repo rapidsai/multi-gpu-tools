@@ -110,7 +110,7 @@ for algo in ${ALGOS[*]}; do
                 echo "STARTED" > ${STATUS_FILE}
                 # increase the timeout because some nodes take much longer to start
                 # their container
-                handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py \
+                handleTimeout 600 python ${SCRIPTS_DIR}/wait_for_workers.py \
                     --num-expected-workers ${NUM_GPUS} \
                     --scheduler-file-path ${SCHEDULER_FILE}
 
