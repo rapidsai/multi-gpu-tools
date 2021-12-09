@@ -113,7 +113,7 @@ for test_file in tests/dask/test_mg_*.py; do
             # if want to debug for the scheduler file not being found
             # Starting the benchmark
             echo "STARTED" > ${STATUS_FILE}
-            handleTimeout 600 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
+            handleTimeout 120 python ${RAPIDS_MG_TOOLS_DIR}/wait_for_workers.py \
                 --num-expected-workers ${NUM_GPUS} \
                 --scheduler-file-path ${SCHEDULER_FILE} \
 

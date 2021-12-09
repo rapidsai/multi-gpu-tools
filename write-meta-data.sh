@@ -70,8 +70,13 @@ else
     exit 1
 fi
 
+# Get gpu metadata
+MACHINE="$(nvidia-smi --query-gpu=name --format=csv,noheader --id=0)"
+MACHINE="${MACHINE// /-}"
+
 echo "# source this file for project meta-data" > $METADATA_FILE
 echo "PROJECT_VERSION=\"$PROJECT_VERSION\"" >> $METADATA_FILE
+echo "MACHINE=\"$MACHINE\"" >> $METADATA_FILE
 echo "PROJECT_BUILD=\"$PROJECT_BUILD\"" >> $METADATA_FILE
 echo "PROJECT_CHANNEL=\"$PROJECT_CHANNEL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_URL=\"$PROJECT_REPO_URL\"" >> $METADATA_FILE
