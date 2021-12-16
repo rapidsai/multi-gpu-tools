@@ -71,12 +71,13 @@ else
 fi
 
 # Get gpu metadata
-MACHINE="$(nvidia-smi --query-gpu=name --format=csv,noheader --id=0)"
-MACHINE="${MACHINE// /-}"
+GPU_TYPE="$(nvidia-smi --query-gpu=name --format=csv,noheader --id=0)"
+GPU_TYPE="${GPU_TYPE// /-}"
 
 echo "# source this file for project meta-data" > $METADATA_FILE
 echo "PROJECT_VERSION=\"$PROJECT_VERSION\"" >> $METADATA_FILE
-echo "MACHINE=\"$MACHINE\"" >> $METADATA_FILE
+echo "GPU_TYPE=\"$GPU_TYPE\"" >> $METADATA_FILE
+echo "MACHINE=\"$SLURM_CLUSTER_NAME\"" >> $METADATA_FILE
 echo "PROJECT_BUILD=\"$PROJECT_BUILD\"" >> $METADATA_FILE
 echo "PROJECT_CHANNEL=\"$PROJECT_CHANNEL\"" >> $METADATA_FILE
 echo "PROJECT_REPO_URL=\"$PROJECT_REPO_URL\"" >> $METADATA_FILE
