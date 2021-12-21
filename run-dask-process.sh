@@ -84,7 +84,6 @@ fi
 
 export DASK_LOGGING__DISTRIBUTED="DEBUG"
 
-ulimit -n 100000
 
 
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
