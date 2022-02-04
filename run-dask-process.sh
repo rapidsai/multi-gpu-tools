@@ -115,12 +115,6 @@ function buildUCXWithInfinibandArgs {
 
     export UCX_MAX_RNDV_RAILS=1
     export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
-
-    export DASK_UCX__CUDA_COPY=True
-    export DASK_UCX__TCP=True
-    export DASK_UCX__NVLINK=True
-    export DASK_UCX__INFINIBAND=True
-    export DASK_UCX__RDMACM=True
     export DASK_RMM__POOL_SIZE=0.5GB
 
     SCHEDULER_ARGS="--protocol=ucx
@@ -129,10 +123,7 @@ function buildUCXWithInfinibandArgs {
                 --scheduler-file $SCHEDULER_FILE
                "
 
-    WORKER_ARGS="--enable-tcp-over-ucx
-                --enable-nvlink
-                --enable-infiniband
-                --enable-rdmacm
+    WORKER_ARGS="--interface=$DASK_CUDA_INTERFACE
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE

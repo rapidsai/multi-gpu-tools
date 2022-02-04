@@ -67,7 +67,7 @@ def wait_for_workers(
 
     print("wait_for_workers.py - initializing client...", end="")
     sys.stdout.flush()
-    initialize_dask_cuda(communication_type)
+    #initialize_dask_cuda(communication_type)
     print("done.")
     sys.stdout.flush()
 
