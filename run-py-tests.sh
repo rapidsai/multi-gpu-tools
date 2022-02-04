@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this is project-specific and should happen at the project level.
-module load cuda/11.0.3
+module load cuda/11.2.2.0
 activateCondaEnv
 
 # FIXME: enforce 1st arg is present
@@ -86,7 +86,7 @@ for test_file in tests/dask/test_mg_*.py; do
         export SCHEDULER_FILE=$SCHEDULER_FILE
         # srun runs a task per node by default
         uniqueJobName=$(uuidgen | cut -d'-' -f1)
-        srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh --loadModule &
+        srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --partition=batch --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh --loadModule &
         RUN_DASK_CLUSTER_PID=$!
         handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
         DASK_STARTUP_ERRORCODE=$LAST_EXITCODE

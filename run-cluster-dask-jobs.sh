@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 if hasArg --loadModule; then
-    module load cuda/11.0.3
+    module load cuda/11.2.2.0
 fi
 activateCondaEnv
 

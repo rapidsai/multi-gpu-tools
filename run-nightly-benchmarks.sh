@@ -16,7 +16,7 @@ RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 # FIXME: this is project-specific and should happen at the project level.
-module load cuda/11.0.3
+module load cuda/11.2.2.0
 activateCondaEnv
 
 # FIXME: enforce 1st arg is present
@@ -25,7 +25,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # Creates a string "0,1,2,3" if NUM_GPUS=4, for example, which can be
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
-SCALES=("17" "18" "19")
+SCALES=("9" "10" "11")
 ALGOS=(bfs sssp pagerank wcc louvain katz)
 #ALGOS=(bfs)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)
@@ -93,7 +93,7 @@ for algo in ${ALGOS[*]}; do
             export SCHEDULER_FILE=$SCHEDULER_FILE
             # srun runs a task per node by default
             uniqueJobName=$(uuidgen | cut -d'-' -f1)
-            srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
+            srun --export="ALL,SCRIPTS_DIR=$SCRIPTS_DIR" --job-name=$uniqueJobName --partition=batch --output=/dev/null ${SCRIPTS_DIR}/run-cluster-dask-jobs.sh &
             RUN_DASK_CLUSTER_PID=$!
             handleTimeout 120 python ${SCRIPTS_DIR}/wait_for_workers.py --num-expected-workers=$NUM_GPUS --scheduler-file-path=$SCHEDULER_FILE
             DASK_STARTUP_ERRORCODE=$LAST_EXITCODE
@@ -108,29 +108,29 @@ for algo in ${ALGOS[*]}; do
             if echo ${SYMMETRIZED_ALGOS[*]} | grep -q -w "$algo"; then
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
                     if [[ $NUM_NODES -gt 1 ]]; then
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --symmetric-graph --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 fi
             else
                 if echo ${WEIGHTED_ALGOS[*]} | grep -q -w "$algo"; then
                     if [[ $NUM_NODES -gt 1 ]]; then
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 else
                     if [[ $NUM_NODES -gt 1 ]]; then
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --dask-scheduler-file=$SCHEDULER_FILE --benchmark-dir=$BENCHMARK_RESULTS_DIR
                     else
-                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted
+                        handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 fi
             fi 
