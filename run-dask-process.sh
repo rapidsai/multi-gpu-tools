@@ -116,6 +116,7 @@ function buildUCXWithInfinibandArgs {
     export UCX_MAX_RNDV_RAILS=1
     export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
     export DASK_RMM__POOL_SIZE=0.5GB
+    export DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT=True
 
     SCHEDULER_ARGS="--protocol=ucx
                 --port=$DASK_SCHEDULER_PORT

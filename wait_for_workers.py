@@ -17,7 +17,6 @@ import time
 import yaml
 
 from dask.distributed import Client
-from dask_cuda.initialize import initialize
 
 
 def initialize_dask_cuda(communication_type):
@@ -25,32 +24,10 @@ def initialize_dask_cuda(communication_type):
     if "ucx" in communication_type:
         os.environ["UCX_MAX_RNDV_RAILS"] = "1"
 
-    if communication_type in ["ucxib", "ucx-ib"]:
-        initialize(
-            enable_tcp_over_ucx=True,
-            enable_nvlink=True,
-            enable_infiniband=True,
-            enable_rdmacm=True,
-        )
-    elif communication_type == "ucx":
-        initialize(
-            enable_tcp_over_ucx=True,
-            enable_nvlink=True,
-            enable_infiniband=False,
-            enable_rdmacm=False,
-        )
-    else:
-        if communication_type != "tcp":
-            print(
-                f"Communication type {communication_type} unknown, using default tcp configuration"
-            )
-
-        initialize(
-            enable_tcp_over_ucx=False,
-            enable_nvlink=False,
-            enable_infiniband=False,
-            enable_rdmacm=False,
-        )
+    if communication_type == "ucx-ib":
+        os.environ["UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES"]="cuda"
+        os.environ["DASK_RMM__POOL_SIZE"]="0.5GB"
+        os.environ["DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT"]="True"
 
 
 def wait_for_workers(
@@ -67,7 +44,7 @@ def wait_for_workers(
 
     print("wait_for_workers.py - initializing client...", end="")
     sys.stdout.flush()
-    #initialize_dask_cuda(communication_type)
+    initialize_dask_cuda(communication_type)
     print("done.")
     sys.stdout.flush()
 

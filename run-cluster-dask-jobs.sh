@@ -31,7 +31,7 @@ RUN_SCHEDULER=0
 # is typically run on 0 and putting the scheduler on 1 helps
 # distribute the load (I think, just based on getting OOM errors when
 # everything ran on 0).
-if [[ $SLURM_NODEID == 0 ]] || hasArg --scheduler-and-workers; then
+if [[ $SLURM_NODEID == 0 ]] || [[ $SLURM_JOB_NUM_NODES == 1 ]] || hasArg --scheduler-and-workers; then
     RUN_SCHEDULER=1
 fi
 
