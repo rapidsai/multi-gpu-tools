@@ -82,10 +82,9 @@ fi
 
 ########################################
 
-export DASK_LOGGING__DISTRIBUTED="DEBUG"
+#export DASK_LOGGING__DISTRIBUTED="DEBUG"
 
-ulimit -n 100000
-
+#ulimit -n 100000
 
 SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
 WORKERS_LOG=${LOGS_DIR}/worker-${HOSTNAME}_log.txt
@@ -106,6 +105,8 @@ function buildTcpArgs {
     WORKER_ARGS="--rmm-pool-size=$WORKER_RMM_POOL_SIZE
              --local-directory=/tmp/$LOGNAME 
              --scheduler-file=$SCHEDULER_FILE
+             --memory-limit=$DASK_HOST_MEMORY_LIMIT
+             --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
             "
 
 }
@@ -114,13 +115,8 @@ function buildUCXWithInfinibandArgs {
 
     export UCX_MAX_RNDV_RAILS=1
     export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
-
-    export DASK_UCX__CUDA_COPY=True
-    export DASK_UCX__TCP=True
-    export DASK_UCX__NVLINK=True
-    export DASK_UCX__INFINIBAND=True
-    export DASK_UCX__RDMACM=True
     export DASK_RMM__POOL_SIZE=0.5GB
+    export DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT=True
 
     SCHEDULER_ARGS="--protocol=ucx
                 --port=$DASK_SCHEDULER_PORT
@@ -128,13 +124,12 @@ function buildUCXWithInfinibandArgs {
                 --scheduler-file $SCHEDULER_FILE
                "
 
-    WORKER_ARGS="--enable-tcp-over-ucx
-                --enable-nvlink
-                --enable-infiniband
-                --enable-rdmacm
+    WORKER_ARGS="--interface=$DASK_CUDA_INTERFACE
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE
+                --memory-limit=$DASK_HOST_MEMORY_LIMIT
+                --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
                 "
 }
 
@@ -166,6 +161,8 @@ function buildUCXwithoutInfinibandArgs {
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE
+                --memory-limit=$DASK_HOST_MEMORY_LIMIT
+                --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
                 "
 }
 
@@ -190,7 +187,7 @@ num_scheduler_tries=0
 function startScheduler {
     mkdir -p $(dirname $SCHEDULER_FILE)
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
-    python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
+    dask-scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
 }
 
@@ -231,7 +228,7 @@ if [[ $START_WORKERS == 1 ]]; then
         sleep 2
     done
     echo "RUNNING: \"python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
-    python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &
+    dask-cuda-worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &
     worker_pid=$!
     echo "worker(s) started."
 fi
