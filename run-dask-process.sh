@@ -141,12 +141,12 @@ function buildUCXwithoutInfinibandArgs {
     export UCX_TCP_TX_SEG_SIZE=8M
     export UCX_TCP_RX_SEG_SIZE=8M
 
-    export DASK_UCX__CUDA_COPY=True
-    export DASK_UCX__TCP=True
-    export DASK_UCX__NVLINK=True
-    export DASK_UCX__INFINIBAND=False
-    export DASK_UCX__RDMACM=False
-    export DASK_RMM__POOL_SIZE=0.5GB
+    export DASK_DISTRIBUTED__COMM__UCX__CUDA_COPY=True
+    export DASK_DISTRIBUTED__COMM__UCX__TCP=True
+    export DASK_DISTRIBUTED__COMM__UCX__NVLINK=True
+    export DASK_DISTRIBUTED__COMM__UCX__INFINIBAND=False
+    export DASK_DISTRIBUTED__COMM__UCX__RDMACM=False
+    export DASK_DISTRIBUTED__COMM__RMM__POOL_SIZE=0.5GB
 
 
     SCHEDULER_ARGS="--protocol=ucx
