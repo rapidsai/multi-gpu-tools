@@ -146,7 +146,7 @@ function buildUCXwithoutInfinibandArgs {
     export DASK_DISTRIBUTED__COMM__UCX__NVLINK=True
     export DASK_DISTRIBUTED__COMM__UCX__INFINIBAND=False
     export DASK_DISTRIBUTED__COMM__UCX__RDMACM=False
-    export DASK_DISTRIBUTED__COMM__RMM__POOL_SIZE=0.5GB
+    export DASK_RMM__POOL_SIZE=0.5GB
 
 
     SCHEDULER_ARGS="--protocol=ucx
