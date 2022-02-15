@@ -28,7 +28,7 @@ NUM_NODES=$(python -c "from math import ceil;print(int(ceil($NUM_GPUS/float($GPU
 # Creates a string "0,1,2,3" if NUM_GPUS=4, for example, which can be
 # used for setting CUDA_VISIBLE_DEVICES on single-node runs.
 ALL_GPU_IDS=$(python -c "print(\",\".join([str(n) for n in range($NUM_GPUS)]))")
-SCALES=("9" "10" "11")
+SCALES=("21" "22" "23")
 
 ALGOS=(bfs sssp pagerank louvain katz wcc)
 SYMMETRIZED_ALGOS=(sssp wcc louvain)

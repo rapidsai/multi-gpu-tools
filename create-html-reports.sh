@@ -185,6 +185,7 @@ echo "</body>
 if hasArg --run-asv; then
     asv_config_file=$(find ${BENCHMARK_RESULTS_DIR}/asv -name "asv.conf.json")
     if [ "$asv_config_file" != "" ]; then
+        asv update --config $asv_config_file
         asv publish --config $asv_config_file
     fi
 fi
