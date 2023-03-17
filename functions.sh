@@ -65,26 +65,6 @@ function unsetTee {
     fi
 }
 
-# Creates a unique results dir based on date, then links the common
-# results dir name to it.
-function setupResultsDir {
-    mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
-    # Store the target of $RESULTS_DIR before $RESULTS_DIR get linked to
-    # a different dir 
-    previous_results=$(readlink -f $RESULTS_DIR)
-  
-    rm -rf $RESULTS_DIR
-    ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
-    mkdir -p $TESTING_RESULTS_DIR
-    mkdir -p $BENCHMARK_RESULTS_DIR
-    
-    old_asv_dir=$previous_results/benchmarks/asv
-    if [ -d $old_asv_dir ]; then
-        cp -r $old_asv_dir $BENCHMARK_RESULTS_DIR
-    fi
-}
-
-
 # echos the name of the directory that $1 is linked to. Useful for
 # getting the actual path of the results dir since that is often
 # sym-linked to a unique (based on timestamp) results dir name.
@@ -142,4 +122,3 @@ if [[ $(type -t activateCondaEnv) == "" ]]; then
         conda activate $CONDA_ENV
     }
 fi
-

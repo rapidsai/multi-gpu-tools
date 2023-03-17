@@ -30,7 +30,7 @@ TESTING_DIR=${TESTING_DIR:-${WORKSPACE}/testing}
 BENCHMARK_DIR=${BENCHMARK_DIR:-${WORKSPACE}/benchmark}
 SCRIPTS_DIR=$RAPIDS_MG_TOOLS_DIR
 
-# These really should be oerridden by the project config!
+# These really should be overridden by the project config!
 CONDA_ENV=${CONDA_ENV:-rapids}
 PRIMARY_CONDA_PACKAGE_NAME=${PRIMARY_CONDA_PACKAGE_NAME:-condapackage}
 REPO_DIR_NAME=${REPO_DIR_NAME:-repo}
