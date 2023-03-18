@@ -23,9 +23,6 @@ LOGS_DIR=${LOGS_DIR:-${RESULTS_DIR}/dask_logs-$$}
 ########################################
 NUMARGS=$#
 ARGS=$*
-function hasArg {
-    (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
-}
 VALIDARGS="-h --help scheduler workers --tcp --ucx --ucxib --ucx-ib"
 HELP="$0 [<app> ...] [<flag> ...]
  where <app> is:
@@ -90,7 +87,7 @@ SCHEDULER_LOG=${LOGS_DIR}/scheduler_log.txt
 WORKERS_LOG=${LOGS_DIR}/worker-${HOSTNAME}_log.txt
 
 
-function buildTcpArgs {
+buildTcpArgs () {
     export DASK_DISTRIBUTED__COMM__TIMEOUTS__CONNECT="100s"
     export DASK_DISTRIBUTED__COMM__TIMEOUTS__TCP="600s"
     export DASK_DISTRIBUTED__COMM__RETRY__DELAY__MIN="1s"
@@ -103,7 +100,7 @@ function buildTcpArgs {
                 "
 
     WORKER_ARGS="--rmm-pool-size=$WORKER_RMM_POOL_SIZE
-             --local-directory=/tmp/$LOGNAME 
+             --local-directory=/tmp/$LOGNAME
              --scheduler-file=$SCHEDULER_FILE
              --memory-limit=$DASK_HOST_MEMORY_LIMIT
              --device-memory-limit=$DASK_DEVICE_MEMORY_LIMIT
@@ -111,7 +108,7 @@ function buildTcpArgs {
 
 }
 
-function buildUCXWithInfinibandArgs {
+buildUCXWithInfinibandArgs () {
 
     export UCX_MAX_RNDV_RAILS=1
     export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
@@ -134,7 +131,7 @@ function buildUCXWithInfinibandArgs {
 }
 
 
-function buildUCXwithoutInfinibandArgs {
+buildUCXwithoutInfinibandArgs () {
 
     export UCX_TCP_CM_REUSEADDR=y
     export UCX_MAX_RNDV_RAILS=1
@@ -184,7 +181,7 @@ scheduler_pid=""
 worker_pid=""
 num_scheduler_tries=0
 
-function startScheduler {
+startScheduler () {
     mkdir -p $(dirname $SCHEDULER_FILE)
     echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
     dask-scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
@@ -200,7 +197,7 @@ if [[ $START_SCHEDULER == 1 ]]; then
     startScheduler
     sleep 6
     num_scheduler_tries=$(echo $num_scheduler_tries+1 | bc)
-    
+
     # Wait for the scheduler to start first before proceeding, since
     # it may require several retries (if prior run left ports open
     # that need time to close, etc.)
@@ -243,4 +240,3 @@ if [[ $scheduler_pid != "" ]]; then
     echo "waiting for scheduler pid $scheduler_pid to finish before exiting script..."
     wait $scheduler_pid
 fi
-

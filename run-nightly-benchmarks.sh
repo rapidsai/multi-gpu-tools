@@ -40,7 +40,7 @@ export CUPY_CACHE_DIR=${BENCHMARK_DIR} #change this after removing the cugraph-b
 # Function for running a command that gets killed after a specific timeout and
 # logs a timeout message. This also sets ERRORCODE appropriately.
 LAST_EXITCODE=0
-function handleTimeout {
+handleTimeout () {
     seconds=$1
     eval "timeout --signal=2 --kill-after=60 $*"
     LAST_EXITCODE=$?
@@ -133,7 +133,7 @@ for algo in ${ALGOS[*]}; do
                         handleTimeout 600 python ${BENCHMARK_DIR}/python_e2e/main.py --algo=$algo --scale=$scale --unweighted --benchmark-dir=$BENCHMARK_RESULTS_DIR --rmm-pool-size=$WORKER_RMM_POOL_SIZE
                     fi
                 fi
-            fi 
+            fi
             BENCHMARK_ERRORCODE=$LAST_EXITCODE
         else
             logger "Dask processes failed to start, not running benchmarks for $algo."
@@ -161,18 +161,17 @@ for algo in ${ALGOS[*]}; do
         unsetTee
 
         # Generate a crude report containing the status of each benchmark file.
-        
+
         benchmark_status_string=PASSED
         if [[ $BENCHMARK_ERRORCODE != 0 ]]; then
             benchmark_status_string=FAILED
         fi
         echo "Benchmarking $algo $benchmark_status_string ./${RELATIVE_LOGS_DIR}" >> ${BENCHMARK_RESULTS_DIR}/benchmark-results-${NUM_GPUS}-GPUs.txt
         #fi
-        
+
         sleep 2
     done
 done
 
 logger "Exiting \"run-nightly-benchmarks.sh $NUM_GPUS\" with $ERRORCODE"
 exit $ERRORCODE
-

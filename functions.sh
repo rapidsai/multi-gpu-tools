@@ -18,11 +18,11 @@
 
 NUMARGS=$#
 ARGS=$*
-function hasArg {
+hasArg () {
     (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
 }
 
-function logger {
+logger () {
   echo -e ">>>> $@"
 }
 
@@ -31,7 +31,7 @@ function logger {
 # "outfile" simultaneously. This is useful by allowing a script to
 # "tee" itself at any point without being called with tee.
 _origFileDescriptorsSaved=0
-function setTee {
+setTee () {
     if [[ $_origFileDescriptorsSaved == 0 ]]; then
         # Save off the original file descr 1 and 2 as 3 and 4
         exec 3>&1 4>&2
@@ -56,7 +56,7 @@ function setTee {
 
 # Call this to stop script output from going to "tee" after a prior
 # call to setTee.
-function unsetTee {
+unsetTee () {
     if [[ $_origFileDescriptorsSaved == 1 ]]; then
         # Close the current fd 1 and 2 which should stop the tee
         # process, then restore 1 and 2 to original (saved as 3, 4).
@@ -68,7 +68,7 @@ function unsetTee {
 # echos the name of the directory that $1 is linked to. Useful for
 # getting the actual path of the results dir since that is often
 # sym-linked to a unique (based on timestamp) results dir name.
-function getNonLinkedFileName {
+getNonLinkedFileName () {
     linkname=$1
     targetname=$(readlink -f $linkname)
     if [[ "$targetname" != "" ]]; then
@@ -78,7 +78,7 @@ function getNonLinkedFileName {
     fi
 }
 
-function waitForSlurmJobsToComplete {
+waitForSlurmJobsToComplete () {
     ids=$*
     jobs=$(python -c "print(\",\".join(\"$ids\".split()))") # make a comma-separated list
     jobsInQueue=$(squeue --noheader --jobs=$jobs)
@@ -94,7 +94,7 @@ function waitForSlurmJobsToComplete {
 # results in cugraph being cloned to /my/repos/cg.
 # NOTE: This removes any existing cloned repos that match the
 # destination.
-function cloneRepo {
+cloneRepo () {
     repo_url=$1
     repo_name=$2
     dest_dir=$3
@@ -116,7 +116,7 @@ function cloneRepo {
 # current environment, which allows the project to override it from
 # its functions.sh file that was previously source'd.
 if [[ $(type -t activateCondaEnv) == "" ]]; then
-    function activateCondaEnv {
+    activateCondaEnv () {
         logger "Activating conda env ${CONDA_ENV}..."
         eval "$(conda shell.bash hook)"
         conda activate $CONDA_ENV

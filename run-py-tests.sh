@@ -35,7 +35,7 @@ export CUPY_CACHE_DIR=${TESTING_DIR}
 # Function for running a command that gets killed after a specific timeout and
 # logs a timeout message. This also sets ERRORCODE appropriately.
 LAST_EXITCODE=0
-function handleTimeout {
+handleTimeout () {
     seconds=$1
     eval "timeout --signal=2 --kill-after=60 $*"
     LAST_EXITCODE=$?
@@ -131,7 +131,7 @@ for test_file in tests/dask/test_mg_*.py; do
         test_status_string=FAILED
     fi
     echo "$test_file $test_status_string ./${RELATIVE_LOGS_DIR}" >> ${TESTING_RESULTS_DIR}/pytest-results-${NUM_GPUS}-GPUs.txt
-    
+
     sleep 2
 done
 
