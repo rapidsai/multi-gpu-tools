@@ -88,16 +88,16 @@ waitForSlurmJobsToComplete () {
     done
 }
 
-# Clones repo from URL specified by $1 as name $2 in to directory
-# $3. For example:
-# "cloneRepo https://github.com/rapidsai/cugraph.git /my/repos cg"
+# Clones repo from URL specified by $1 to directory $2
+# For example:
+# "cloneRepo https://github.com/rapidsai/cugraph.git /my/repos/cg"
 # results in cugraph being cloned to /my/repos/cg.
 # NOTE: This removes any existing cloned repos that match the
 # destination.
 cloneRepo () {
     repo_url=$1
-    repo_name=$2
-    dest_dir=$3
+    repo_name=$(basename $2)
+    dest_dir=$(dirname $2)
     mkdir -p $dest_dir
     pushd $dest_dir > /dev/null
     logger "Clone $repo_url in $dest_dir..."

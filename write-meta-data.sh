@@ -19,11 +19,8 @@ if hasArg -h || hasArg --help; then
     echo "$0 [<option>...]
 where <option> is:
   --from-source  - Assume a from-source build and use git to extract meta-data.
-                   Default is to detect if the env was created from a from-source
-                   build (use git) or from conda (use conda).
-  --from-conda  -  Assume a conda install and use conda to extract meta-data.
-                   Default is to detect if the env was created from a from-source
-                   build (use git) or from conda (use conda).
+  --from-conda   - Assume a conda install and use conda to extract meta-data.
+  --from-pip     - Assume a pip install and use pip to extract meta-data.
   --help | -h    - Print this message and exit.
 "
     exit 0
@@ -60,8 +57,14 @@ elif hasArg --from-source; then
     PROJECT_REPO_BRANCH=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --abbrev-ref HEAD)
     PROJECT_REPO_TIME=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git log -n1 --pretty='%ct' ${PROJECT_VERSION})
 
+elif hasArg --from-pip; then
+    # FIXME: write this
+    PROJECT_VERSION="FIXME"
+    PROJECT_BUILD="FIXME"
+    PROJECT_CHANNEL="FIXME"
+
 else
-    echo "ERROR: must specify either --from-source or --from-conda"
+    echo "ERROR: must specify either --from-source or --from-conda or --from-pip"
     exit 1
 fi
 
