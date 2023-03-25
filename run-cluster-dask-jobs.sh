@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname $0); pwd)}
+RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
 RUN_SCHEDULER=0
@@ -33,7 +33,7 @@ fi
 # NOTE: if the LOGS_DIR env var is exported from the calling env, it
 # will be used by run-dask-process.sh as the log location.
 if [[ $RUN_SCHEDULER == 1 ]]; then
-    ${SCRIPTS_DIR}/run-dask-process.sh scheduler workers
+    ${RAPIDS_MG_TOOLS_DIR}/run-dask-process.sh scheduler workers
 else
-    ${SCRIPTS_DIR}/run-dask-process.sh workers
+    ${RAPIDS_MG_TOOLS_DIR}/run-dask-process.sh workers
 fi
