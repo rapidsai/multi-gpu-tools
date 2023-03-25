@@ -28,12 +28,12 @@ fi
 
 rm -f $METADATA_FILE
 
-# Ensure this script fails immediately if any meta-data cannot be
-# retrieved, which results in no $METADATA_FILE written. This is
-# assumed to be better than potentially incorrect meta-data.  All
-# other scripts should look for the presence of the $METADATA_FILE and
-# act accordingly if not present.
-set -e
+# Ensure this script fails immediately (-e) if any meta-data cannot be
+# retrieved, which results in no $METADATA_FILE written. This is assumed to be
+# better than potentially incorrect meta-data.  All other scripts should look
+# for the presence of the $METADATA_FILE and act accordingly if not
+# present. Treat undefined vars as errors (-u)
+set -eu
 
 PROJECT_VERSION=""
 PROJECT_BUILD=""
