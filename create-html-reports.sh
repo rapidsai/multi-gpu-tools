@@ -15,8 +15,10 @@
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
+# ALL_REPORTS should contain something like the following:
+# /some/results/dir/2-GPU/pytest-results.txt /some/results/dir/8-GPU/pytest-results.txt ...
 # FIXME: this assumes all reports are from running pytests
-ALL_REPORTS=$(find ${TESTING_RESULTS_DIR} -name "pytest-results-*.txt")
+ALL_REPORTS=$(find ${TESTING_RESULTS_DIR} -name "pytest-results.txt")
 
 # Create the html describing the build and test run
 REPORT_METADATA_HTML=""
@@ -48,16 +50,16 @@ fi
 
 
 ################################################################################
-# create the html reports for each individual run (each
-# pytest-results*.txt file)
+# create the html reports for each individual test run (each pytest-results.txt
+# file).
 if [ "$ALL_REPORTS" != "" ]; then
     for report in $ALL_REPORTS; do
-        # Get the individual report name, and use the .txt file path
-        # to form the html report being generated (same location as
-        # the .txt file). This will be an abs path since it is a file
-        # on disk being written.
-        report_name=$(basename -s .txt $report)
-        html_report_abs_path=$(dirname $report)/${report_name}.html
+	# $report will look something like:
+	# /some/results/dir/8-GPU/pytest-results.txt
+	num_gpus=$(basename $(dirname $report))
+	run_type=$(basename $report)
+	report_name="${run_type}-${num_gpus}"
+        html_report_abs_path=$(dirname $report)/${run_type}.html
         echo "<!doctype html>
 <html>
 <head>
