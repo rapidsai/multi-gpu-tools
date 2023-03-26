@@ -40,6 +40,7 @@ PROJECT_BUILD=""
 PROJECT_CHANNEL=""
 PROJECT_REPO_URL=""
 PROJECT_REPO_BRANCH=""
+PROJECT_REPO_TIME=""
 
 if hasArg --from-conda; then
     # output format is: name version build channel
