@@ -57,7 +57,7 @@ if [ "$ALL_REPORTS" != "" ]; then
 	# $report will look something like:
 	# /some/results/dir/8-GPU/pytest-results.txt
 	num_gpus=$(basename $(dirname $report))
-	run_type=$(basename $report)
+	run_type=$(basename -s .txt $report)
 	report_name="${run_type}-${num_gpus}"
         html_report_abs_path=$(dirname $report)/${run_type}.html
         echo "<!doctype html>
@@ -118,12 +118,19 @@ done
 
 ################################################################################
 # create the top-level report
+
+# https://img.icons8.com/bubbles/100/000000/approval.png'
+# https://img.icons8.com/cotton/80/000000/cancel--v1.png'
+
 STATUS='FAILED'
-STATUS_IMG='https://img.icons8.com/cotton/80/000000/cancel--v1.png'
+STATUS_IMG='https://img.icons8.com/color/154/test-failed.png'
 if [ "$ALL_REPORTS" != "" ]; then
     if ! (grep -w FAILED $ALL_REPORTS > /dev/null); then
         STATUS='PASSED'
-        STATUS_IMG='https://img.icons8.com/bubbles/100/000000/approval.png'
+        STATUS_IMG='https://img.icons8.com/color/512/test-passed.png'
+    elif (grep -w PASSED $ALL_REPORTS > /dev/null); then
+	STATUS='some failures'
+	STATUS_IMG='https://img.icons8.com/color/512/test-partial-passed.png'
     fi
 fi
 BUILD_LOG_HTML="(build log not available or build not run)"
@@ -150,29 +157,35 @@ echo "<!doctype html>
 <body>
 " > $report
 echo "$REPORT_METADATA_HTML" >> $report
-echo "<img src=\"${STATUS_IMG}\" alt=\"${STATUS}\"/> Overall status: $STATUS<br>" >> $report
+echo "<img src=\"${STATUS_IMG}\" alt=\"${STATUS}\" width=\"100\" height=\"120\"/>" >> $report
+echo "<br>" >> $report
+echo "Overall status: $STATUS<br>" >> $report
 echo "Build: ${BUILD_STATUS} ${BUILD_LOG_HTML}<br>" >> $report
 if [ "$ALL_REPORTS" != "" ]; then
     echo "   <table style=\"width:100%\">
    <tr>
-      <th>run</th><th>status</th>
+      <th align=left>run</th><th align=left>stats</th><th align=left>status</th>
    </tr>
    " >> $report
-    for f in $ALL_REPORTS; do
-        report_name=$(basename -s .txt $f)
+    for sub_report in $ALL_REPORTS; do
+	num_gpus=$(basename $(dirname $sub_report))
+	run_type=$(basename -s .txt $sub_report)
+	sub_report_name="${run_type}-${num_gpus}"
         # report_path should be of the form "tests/foo.html"
         prefix_to_remove="$RESULTS_DIR/"
-        report_rel_path=${f/$prefix_to_remove}
-        report_path=$(dirname $report_rel_path)/${report_name}.html
+        sub_report_rel_path=${sub_report/$prefix_to_remove}
+        sub_report_path=$(dirname $sub_report_rel_path)/${run_type}.html
 
-        if (grep -w FAILED $f > /dev/null); then
+	stats_string=$(awk 'BEGIN {p=0;f=0} /FAILED/ {f=f+1} /PASSED/ {p=p+1} END {print p " out of " (p+f) " passed (" (p/(p+f))*100 "%)"}' $sub_report)
+
+        if (grep -w FAILED $sub_report > /dev/null); then
             status="FAILED"
             color="red"
         else
             status="PASSED"
             color="green"
         fi
-        echo "<tr><td><a href=${report_path}>${report_name}</a></td><td style=\"color:${color}\">${status}</td></tr>" >> $report
+        echo "<tr><td><a href=${sub_report_path}>${sub_report_name}</a></td><td>$stats_string</td><td style=\"color:${color}\">${status}</td></tr>" >> $report
     done
     echo "</table>" >> $report
 else
