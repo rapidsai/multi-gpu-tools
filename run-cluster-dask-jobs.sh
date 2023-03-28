@@ -33,7 +33,9 @@ fi
 # NOTE: if the LOGS_DIR env var is exported from the calling env, it
 # will be used by run-dask-process.sh as the log location.
 if [[ $RUN_SCHEDULER == 1 ]]; then
+    echo "NODE: $SLURM_NODEID, run-cluster-dask-jobs.sh: starting scheduler and workers..."
     ${RAPIDS_MG_TOOLS_DIR}/run-dask-process.sh scheduler workers
 else
+    echo "NODE: $SLURM_NODEID, run-cluster-dask-jobs.sh: starting workers..."
     ${RAPIDS_MG_TOOLS_DIR}/run-dask-process.sh workers
 fi
