@@ -23,9 +23,9 @@
 if [ -n "$PROJECT_DIR" ]; then
     if [ -e ${PROJECT_DIR}/config.sh ]; then
 	source ${PROJECT_DIR}/config.sh
-    fi
-    if [ -e ${PROJECT_DIR}/functions.sh ]; then
-	source ${PROJECT_DIR}/functions.sh
+    else
+        echo "Error: ${PROJECT_DIR}/config.sh was not found and must be present."
+        exit 1
     fi
 fi
 
