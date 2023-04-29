@@ -2,8 +2,8 @@
 # Copyright (c) 2023, NVIDIA CORPORATION.
 # SPDX-License-Identifier: Apache-2.0
 
-# Abort script on first error, undef vars are errors
-set -eu
+# Abort script on first error, undef vars are errors, propagate failures in pipelines
+set -eu -o pipefail
 
 UCX_VERSION_TAG=${1:-"v1.14.x"}
 CUDA_HOME=${2:-"/usr/local/cuda"}

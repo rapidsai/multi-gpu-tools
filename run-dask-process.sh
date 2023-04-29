@@ -18,7 +18,7 @@ source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 # Logs can be written to a specific location by setting the LOGS_DIR
 # env var. If unset, all logs are created under a dir named after the
 # current PID.
-LOGS_DIR=${LOGS_DIR:-${RESULTS_DIR}/dask_logs-$$}
+LOGS_DIR=${LOGS_DIR:-dask_logs-$$}
 
 ########################################
 NUMARGS=$#
@@ -37,8 +37,6 @@ HELP="$0 [<app> ...] [<flag> ...]
  The cluster config order of precedence is any specification on the
  command line (--tcp, --ucx, etc.) if provided, then the value of the
  env var CLUSTER_CONFIG_TYPE if set, then the default value of tcp.
-
- WORKSPACE dir is: $WORKSPACE
 "
 
 # CLUSTER_CONFIG_TYPE defaults to the env var value if set, else TCP
