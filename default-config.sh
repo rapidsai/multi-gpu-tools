@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DATE=$(date --utc "+%Y-%m-%d_%H:%M:%S")_UTC
+DATE=$(date --utc "+%Y%m%d_%H%M%S")_UTC
 TESTING_RESULTS_DIR_NAME=tests
 BENCHMARK_RESULTS_DIR_NAME=benchmarks
 METADATA_FILE_NAME=metadata.sh
@@ -33,3 +33,4 @@ DASK_HOST_MEMORY_LIMIT=${DASK_HOST_MEMORY_LIMIT:-auto}
 # be defined by the individual projects.
 #
 # PRIMARY_CONDA_PACKAGE_NAME
+# CONDA_ENV
