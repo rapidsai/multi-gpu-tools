@@ -82,19 +82,6 @@ handleTimeout () {
     fi
 }
 
-# echos the name of the directory that $1 is linked to. Useful for
-# getting the actual path of the results dir since that is often
-# sym-linked to a unique (based on timestamp) results dir name.
-getNonLinkedFileName () {
-    linkname=$1
-    targetname=$(readlink -f $linkname)
-    if [[ "$targetname" != "" ]]; then
-        echo $targetname
-    else
-        echo $linkname
-    fi
-}
-
 waitForSlurmJobsToComplete () {
     ids=$*
     jobs=$(python -c "print(\",\".join(\"$ids\".split()))") # make a comma-separated list

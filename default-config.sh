@@ -28,3 +28,8 @@ DASK_CUDA_INTERFACE=${DASK_CUDA_INTERFACE:-ib0}
 DASK_SCHEDULER_PORT=${DASK_SCHEDULER_PORT:-8792}
 DASK_DEVICE_MEMORY_LIMIT=${DASK_DEVICE_MEMORY_LIMIT:-auto}
 DASK_HOST_MEMORY_LIMIT=${DASK_HOST_MEMORY_LIMIT:-auto}
+
+# Scripts in this directory use these variables which have no default and must
+# be defined by the individual projects.
+#
+# PRIMARY_CONDA_PACKAGE_NAME

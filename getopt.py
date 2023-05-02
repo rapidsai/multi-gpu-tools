@@ -24,7 +24,7 @@ echo $baz  # prints 33
 
 import argparse
 
-def getopt_to_argparser(prog_name, opt_parse_string, options_list):
+def getopt_to_argparse(prog_name, opt_parse_string, options_list):
     arg_parser = argparse.ArgumentParser(prog=prog_name)
 
     for opt_desc in opt_parse_string.split(","):
@@ -54,14 +54,13 @@ def getopt_to_argparser(prog_name, opt_parse_string, options_list):
 
 
 if __name__ == "__main__":
+    # FIXME: consider using argparse for these CLI options
     import sys
     prog_name = sys.argv[1]
     opt_parse_string = sys.argv[2]
     options = sys.argv[3:]
-    argparse_obj = getopt_to_argparser(prog_name, opt_parse_string, options)
+    argparse_obj = getopt_to_argparse(prog_name, opt_parse_string, options)
 
     # Print parsed options to be eval'd by bash
-    output_strs = []
-    for (option, val) in argparse_obj._get_kwargs():
-        output_strs.append(f"{option}={val}")
+    output_strs = [f"{option}={val}" for (option, val) in vars(argparse_obj).items()]
     print(";".join(output_strs))

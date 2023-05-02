@@ -37,6 +37,11 @@ PROJECT_REPO_BRANCH=""
 PROJECT_REPO_TIME=""
 
 if hasArg --from-conda; then
+    # FIXME: make PRIMARY_CONDA_PACKAGE_NAME an arg and remove from default-config
+    if [ ! -v PRIMARY_CONDA_PACKAGE_NAME ] || [ -z $PRIMARY_CONDA_PACKAGE_NAME ]; then
+	echo "PRIMARY_CONDA_PACKAGE_NAME must be set to the name of the conda package to extract version info for."
+	exit 1
+    fi
     # output format is: name version build channel
     conda_output=$(conda list | grep "^${PRIMARY_CONDA_PACKAGE_NAME}")
     PROJECT_VERSION=$(echo $conda_output | awk '{print $2}')
