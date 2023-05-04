@@ -26,12 +26,12 @@ logger () {
   echo -e ">>>> $@"
 }
 
-# Calling "setTee outfile" will cause all stdout and stderr of the
+# Calling "set_tee outfile" will cause all stdout and stderr of the
 # current script to be output to "tee", which outputs to stdout and
 # "outfile" simultaneously. This is useful by allowing a script to
 # "tee" itself at any point without being called with tee.
 _origFileDescriptorsSaved=0
-setTee () {
+set_tee () {
     if [[ $_origFileDescriptorsSaved == 0 ]]; then
         # Save off the original file descr 1 and 2 as 3 and 4
         exec 3>&1 4>&2
@@ -55,8 +55,8 @@ setTee () {
 }
 
 # Call this to stop script output from going to "tee" after a prior
-# call to setTee.
-unsetTee () {
+# call to set_tee.
+unset_tee () {
     if [[ $_origFileDescriptorsSaved == 1 ]]; then
         # Close the current fd 1 and 2 which should stop the tee
         # process, then restore 1 and 2 to original (saved as 3, 4).

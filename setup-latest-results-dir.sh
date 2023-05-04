@@ -70,7 +70,7 @@ echo "TESTING_RESULTS_DIR=$testing_results_dir" >> ${latest_results_dir}/paths.s
 echo "BENCHMARK_RESULTS_DIR=$benchmark_results_dir" >> ${latest_results_dir}/paths.sh
 # The container may have a /metadata.sh file that can be sourced to set env
 # vars with info about the image that can be used in reports, etc.
-if [ -n /metadata.sh ]; then
+if [ -e /metadata.sh ]; then
     cp /metadata.sh $metadata_file
     echo "METADATA_FILE=$metadata_file" >> ${latest_results_dir}/paths.sh
 else
