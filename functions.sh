@@ -16,14 +16,20 @@
 # also assumes the variables used in this file have been defined
 # elsewhere.
 
-NUMARGS=$#
-ARGS=$*
+_numargs=$#
+_args=$*
 hasArg () {
-    (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
+    (( ${_numargs} != 0 )) && (echo " ${_args} " | grep -q " $1 ")
 }
 
+_logger_prefix=">>>>"
 logger () {
-  echo -e ">>>> $@"
+    if (( $# > 0 )) && [ "$1" == "-p" ]; then
+        shift
+        echo -e "${_logger_prefix} $@"
+    else
+        echo -e "$(date --utc "+%D-%T.%N")_UTC${_logger_prefix} $@"
+    fi
 }
 
 # Calling "set_tee outfile" will cause all stdout and stderr of the
@@ -78,7 +84,7 @@ handleTimeout () {
         logger "ERROR: command timed out after ${_seconds} seconds, and had to be killed with signal 9"
     fi
     if (( ERRORCODE == 0 )); then
-	ERRORCODE=${LAST_EXITCODE}
+        ERRORCODE=${LAST_EXITCODE}
     fi
 }
 
