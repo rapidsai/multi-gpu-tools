@@ -14,6 +14,7 @@
 """
 Example usage from bash script called with --foo-bar=www --baz=33 --boo:
 
+set -e  # exit immediately on error
 eval_str=$(python getopt.py "foo-bar:,boo,bar,baz:int" "$@")
 eval($eval_str)
 echo $foo_bar  # prints www
@@ -22,10 +23,27 @@ echo $boo  # prints 1
 echo $baz  # prints 33
 """
 
-import argparse
+from argparse import ArgumentParser
+
+
+class StderrArgumentParser(ArgumentParser):
+    """
+    ArgumentParser where all messaging, including help, goes to stderr.
+    """
+    def _print_message(self, message, file=None):
+        super(StderrArgumentParser, self)._print_message(message)
+
 
 def getopt_to_argparse(prog_name, opt_parse_string, options_list):
-    arg_parser = argparse.ArgumentParser(prog=prog_name)
+    """
+    Parse options_list using an ArgumentParser created with opt_parse_string,
+    in the style of getopts.
+
+    Return an argparse.Namespace object as normally returned by
+    parse_args(). Any errors or help output will be printed to stderr and None
+    is returned instead.
+    """
+    arg_parser = StderrArgumentParser(prog=prog_name)
 
     for opt_desc in opt_parse_string.split(","):
         opt_desc = opt_desc.split(":")
@@ -49,18 +67,27 @@ def getopt_to_argparse(prog_name, opt_parse_string, options_list):
 
         else:
             raise RuntimeError
-
-    return arg_parser.parse_args(options_list)
+    try:
+        return arg_parser.parse_args(options_list)
+    except SystemExit as err:
+        return None
 
 
 if __name__ == "__main__":
-    # FIXME: consider using argparse for these CLI options
     import sys
     prog_name = sys.argv[1]
-    opt_parse_string = sys.argv[2]
-    options = sys.argv[3:]
-    argparse_obj = getopt_to_argparse(prog_name, opt_parse_string, options)
+    opt_string = sys.argv[2]
+    cli_input = sys.argv[3:]
 
-    # Print parsed options to be eval'd by bash
-    output_strs = [f"{option}={val}" for (option, val) in vars(argparse_obj).items()]
-    print(";".join(output_strs))
+    exit_code = 1
+    argparse_obj = getopt_to_argparse(prog_name, opt_string, cli_input)
+
+    if argparse_obj is not None:
+        # Print parsed options to be eval'd by bash
+        empty = '""'
+        output_strs = [f"{option}={empty if val is None else val}"
+                       for (option, val) in vars(argparse_obj).items()]
+        print(";".join(output_strs))
+        exit_code = 0
+
+    sys.exit(exit_code)
