@@ -22,13 +22,35 @@ hasArg () {
     (( ${_numargs} != 0 )) && (echo " ${_args} " | grep -q " $1 ")
 }
 
-_logger_prefix=">>>>"
+_logger_prefix=">>>> "
 logger () {
     if (( $# > 0 )) && [ "$1" == "-p" ]; then
         shift
-        echo -e "${_logger_prefix} $@"
+        echo -e "${_logger_prefix}$@"
     else
-        echo -e "$(date --utc "+%D-%T.%N")_UTC${_logger_prefix} $@"
+        echo -e "$(date --utc "+%D-%T.%N")_UTC${_logger_prefix}$@"
+    fi
+}
+
+# Retry a command at most $1 times until successful, logging $2 on retry.
+# This requires scripts to use set +e
+retry () {
+    _max_retries=$1
+    _msg=$2
+    shift 2
+    _cmd=$@
+    eval $_cmd
+    _success=$?
+    _num_retries=0
+    while (( _success != 0 )) && (( $_num_retries < $_max_retries )); do
+	logger $_msg
+	eval $_cmd
+	_success=$?
+	(( _num_retries++ ))
+    done
+    # Set a final exit code on non-success that can be checked.
+    if (( $_success != 0 )); then
+	false
     fi
 }
 
