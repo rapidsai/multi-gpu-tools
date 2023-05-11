@@ -81,5 +81,4 @@ fi
 # scripts that call this look for the last line to see the final
 # latest_results_dir that was set up (since it may be named using a timestamp
 # or some other uniquifier).
-echo "Finished setting up latest results dir:"
-echo ${latest_results_dir}
+echo "Finished setting up latest results dir: ${latest_results_dir}"
