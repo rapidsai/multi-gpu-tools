@@ -16,40 +16,40 @@
 # also assumes the variables used in this file have been defined
 # elsewhere.
 
-_numargs=$#
-_args=$*
+numargs=$#
+args=$*
 hasArg () {
-    (( ${_numargs} != 0 )) && (echo " ${_args} " | grep -q " $1 ")
+    (( ${numargs} != 0 )) && (echo " ${args} " | grep -q " $1 ")
 }
 
-_logger_prefix=">>>> "
+logger_prefix=">>>> "
 logger () {
     if (( $# > 0 )) && [ "$1" == "-p" ]; then
         shift
-        echo -e "${_logger_prefix}$@"
+        echo -e "${logger_prefix}$@"
     else
-        echo -e "$(date --utc "+%D-%T.%N")_UTC${_logger_prefix}$@"
+        echo -e "$(date --utc "+%D-%T.%N")_UTC${logger_prefix}$@"
     fi
 }
 
 # Retry a command at most $1 times until successful, logging $2 on retry.
 # This requires scripts to use set +e
 retry () {
-    _max_retries=$1
-    _msg=$2
+    max_retries=$1
+    msg=$2
     shift 2
-    _cmd=$@
-    eval $_cmd
-    _success=$?
-    _num_retries=0
-    while (( _success != 0 )) && (( $_num_retries < $_max_retries )); do
-	logger $_msg
-	eval $_cmd
-	_success=$?
-	(( _num_retries++ ))
+    cmd=$@
+    eval "$cmd"
+    success=$?
+    num_retries=0
+    while (( success != 0 )) && (( $num_retries < $max_retries )); do
+	logger "$msg"
+	eval "$cmd"
+	success=$?
+	(( num_retries++ ))
     done
     # Set a final exit code on non-success that can be checked.
-    if (( $_success != 0 )); then
+    if (( $success != 0 )); then
 	false
     fi
 }
@@ -58,12 +58,12 @@ retry () {
 # current script to be output to "tee", which outputs to stdout and
 # "outfile" simultaneously. This is useful by allowing a script to
 # "tee" itself at any point without being called with tee.
-_origFileDescriptorsSaved=0
+origFileDescriptorsSaved=0
 set_tee () {
-    if [[ $_origFileDescriptorsSaved == 0 ]]; then
+    if [[ $origFileDescriptorsSaved == 0 ]]; then
         # Save off the original file descr 1 and 2 as 3 and 4
         exec 3>&1 4>&2
-        _origFileDescriptorsSaved=1
+        origFileDescriptorsSaved=1
     fi
     teeFile=$1
     # Create a named pipe.
@@ -85,7 +85,7 @@ set_tee () {
 # Call this to stop script output from going to "tee" after a prior
 # call to set_tee.
 unset_tee () {
-    if [[ $_origFileDescriptorsSaved == 1 ]]; then
+    if [[ $origFileDescriptorsSaved == 1 ]]; then
         # Close the current fd 1 and 2 which should stop the tee
         # process, then restore 1 and 2 to original (saved as 3, 4).
         exec 1>&- 2>&-
@@ -143,6 +143,40 @@ cloneRepo () {
     git clone $repo_url
     popd > /dev/null
 }
+
+keep_last_n_files () {
+    n=$1
+    pattern=$2
+
+    _files=(${pattern})
+    if (( ${#_files[*]} > $n )); then
+	_diff=$((${#_files[*]} - $n))
+	for ((i=0; i<${_diff}; i++)); do
+	    rm -rf ${_files[$i]}
+	done
+    fi
+}
+
+wait_for_file () {
+    timeout=$1
+    file_name=$2
+
+    logger "waiting for file: $file_name"
+    i=0
+    while (( i < $timeout )); do
+	if [ -e $file_name ]; then
+	    logger "file $file_name exists"
+	    break
+	fi
+	sleep 1
+	((i++))
+    done
+    if [ ! -e $file_name ]; then
+	logger "timed out waiting for file: $file_name"
+	false
+    fi
+}
+
 
 # Only define this function if it has not already been defined in the
 # current environment, which allows the project to override it from
