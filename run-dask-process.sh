@@ -108,8 +108,6 @@ buildTcpArgs () {
 
 buildUCXWithInfinibandArgs () {
 
-    export UCX_MAX_RNDV_RAILS=1
-    export UCX_MEMTYPE_REG_WHOLE_ALLOC_TYPES=cuda
     export DASK_RMM__POOL_SIZE=0.5GB
     export DASK_DISTRIBUTED__COMM__UCX__CREATE_CUDA_CONTEXT=True
 
@@ -121,6 +119,7 @@ buildUCXWithInfinibandArgs () {
 
     WORKER_ARGS="--interface=$DASK_CUDA_INTERFACE
                 --rmm-pool-size=$WORKER_RMM_POOL_SIZE
+                --rmm-async
                 --local-directory=/tmp/$LOGNAME
                 --scheduler-file=$SCHEDULER_FILE
                 --memory-limit=$DASK_HOST_MEMORY_LIMIT
@@ -181,8 +180,8 @@ num_scheduler_tries=0
 
 startScheduler () {
     mkdir -p $(dirname $SCHEDULER_FILE)
-    echo "RUNNING: \"python -m distributed.cli.dask_scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
-    dask-scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
+    echo "RUNNING: \"dask scheduler $SCHEDULER_ARGS\"" > $SCHEDULER_LOG
+    dask scheduler $SCHEDULER_ARGS >> $SCHEDULER_LOG 2>&1 &
     scheduler_pid=$!
 }
 
@@ -222,7 +221,7 @@ if [[ $START_WORKERS == 1 ]]; then
         echo "run-dask-process.sh: $SCHEDULER_FILE not present - waiting to start workers..."
         sleep 2
     done
-    echo "RUNNING: \"python -m dask_cuda.cli.dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
+    echo "RUNNING: \"dask_cuda_worker $WORKER_ARGS\"" > $WORKERS_LOG
     dask-cuda-worker $WORKER_ARGS >> $WORKERS_LOG 2>&1 &
     worker_pid=$!
     echo "worker(s) started."
