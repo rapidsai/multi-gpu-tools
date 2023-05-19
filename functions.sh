@@ -16,26 +16,54 @@
 # also assumes the variables used in this file have been defined
 # elsewhere.
 
-NUMARGS=$#
-ARGS=$*
-function hasArg {
-    (( ${NUMARGS} != 0 )) && (echo " ${ARGS} " | grep -q " $1 ")
+numargs=$#
+args=$*
+hasArg () {
+    (( ${numargs} != 0 )) && (echo " ${args} " | grep -q " $1 ")
 }
 
-function logger {
-  echo -e ">>>> $@"
+logger_prefix=">>>> "
+logger () {
+    if (( $# > 0 )) && [ "$1" == "-p" ]; then
+        shift
+        echo -e "${logger_prefix}$@"
+    else
+        echo -e "$(date --utc "+%D-%T.%N")_UTC${logger_prefix}$@"
+    fi
 }
 
-# Calling "setTee outfile" will cause all stdout and stderr of the
+# Retry a command at most $1 times until successful, logging $2 on retry.
+# This requires scripts to use set +e
+retry () {
+    max_retries=$1
+    msg=$2
+    shift 2
+    cmd=$@
+    eval "$cmd"
+    success=$?
+    num_retries=0
+    while (( success != 0 )) && (( $num_retries < $max_retries )); do
+	logger "$msg"
+	eval "$cmd"
+	success=$?
+	(( num_retries++ ))
+    done
+    # Set a final exit code on non-success that can be checked.
+    if (( $success != 0 )); then
+	false
+    fi
+}
+
+# Calling "set_tee outfile" will cause all stdout and stderr of the
 # current script to be output to "tee", which outputs to stdout and
 # "outfile" simultaneously. This is useful by allowing a script to
 # "tee" itself at any point without being called with tee.
-_origFileDescriptorsSaved=0
-function setTee {
-    if [[ $_origFileDescriptorsSaved == 0 ]]; then
+origFileDescriptorsSaved=0
+set_tee () {
+    if [[ $origFileDescriptorsSaved == 0 ]]; then
         # Save off the original file descr 1 and 2 as 3 and 4
         exec 3>&1 4>&2
-        _origFileDescriptorsSaved=1
+        origFileDescriptorsSaved=1
     fi
     teeFile=$1
     # Create a named pipe.
@@ -55,9 +83,9 @@ function setTee {
 }
 
 # Call this to stop script output from going to "tee" after a prior
-# call to setTee.
-function unsetTee {
-    if [[ $_origFileDescriptorsSaved == 1 ]]; then
+# call to set_tee.
+unset_tee () {
+    if [[ $origFileDescriptorsSaved == 1 ]]; then
         # Close the current fd 1 and 2 which should stop the tee
         # process, then restore 1 and 2 to original (saved as 3, 4).
         exec 1>&- 2>&-
@@ -65,40 +93,24 @@ function unsetTee {
     fi
 }
 
-# Creates a unique results dir based on date, then links the common
-# results dir name to it.
-function setupResultsDir {
-    mkdir -p ${RESULTS_ARCHIVE_DIR}/${DATE}
-    # Store the target of $RESULTS_DIR before $RESULTS_DIR get linked to
-    # a different dir 
-    previous_results=$(readlink -f $RESULTS_DIR)
-  
-    rm -rf $RESULTS_DIR
-    ln -s ${RESULTS_ARCHIVE_DIR}/${DATE} $RESULTS_DIR
-    mkdir -p $TESTING_RESULTS_DIR
-    mkdir -p $BENCHMARK_RESULTS_DIR
-    
-    old_asv_dir=$previous_results/benchmarks/asv
-    if [ -d $old_asv_dir ]; then
-        cp -r $old_asv_dir $BENCHMARK_RESULTS_DIR
+# Function for running a command that gets killed after a specific timeout and
+# logs a timeout message. This also sets ERRORCODE appropriately.
+LAST_EXITCODE=0
+handleTimeout () {
+    _seconds=$1
+    eval "timeout --signal=2 --kill-after=60 $*" || LAST_EXITCODE=$?
+    ERRORCODE=${ERRORCODE:-0}
+    if (( $LAST_EXITCODE == 124 )); then
+        logger "ERROR: command timed out after ${_seconds} seconds"
+    elif (( $LAST_EXITCODE == 137 )); then
+        logger "ERROR: command timed out after ${_seconds} seconds, and had to be killed with signal 9"
+    fi
+    if (( ERRORCODE == 0 )); then
+        ERRORCODE=${LAST_EXITCODE}
     fi
 }
 
-
-# echos the name of the directory that $1 is linked to. Useful for
-# getting the actual path of the results dir since that is often
-# sym-linked to a unique (based on timestamp) results dir name.
-function getNonLinkedFileName {
-    linkname=$1
-    targetname=$(readlink -f $linkname)
-    if [[ "$targetname" != "" ]]; then
-        echo $targetname
-    else
-        echo $linkname
-    fi
-}
-
-function waitForSlurmJobsToComplete {
+waitForSlurmJobsToComplete () {
     ids=$*
     jobs=$(python -c "print(\",\".join(\"$ids\".split()))") # make a comma-separated list
     jobsInQueue=$(squeue --noheader --jobs=$jobs)
@@ -108,16 +120,16 @@ function waitForSlurmJobsToComplete {
     done
 }
 
-# Clones repo from URL specified by $1 as name $2 in to directory
-# $3. For example:
-# "cloneRepo https://github.com/rapidsai/cugraph.git /my/repos cg"
+# Clones repo from URL specified by $1 to directory $2
+# For example:
+# "cloneRepo https://github.com/rapidsai/cugraph.git /my/repos/cg"
 # results in cugraph being cloned to /my/repos/cg.
 # NOTE: This removes any existing cloned repos that match the
 # destination.
-function cloneRepo {
+cloneRepo () {
     repo_url=$1
-    repo_name=$2
-    dest_dir=$3
+    repo_name=$(basename $2)
+    dest_dir=$(dirname $2)
     mkdir -p $dest_dir
     pushd $dest_dir > /dev/null
     logger "Clone $repo_url in $dest_dir..."
@@ -132,14 +144,47 @@ function cloneRepo {
     popd > /dev/null
 }
 
+keep_last_n_files () {
+    n=$1
+    pattern=$2
+
+    _files=(${pattern})
+    if (( ${#_files[*]} > $n )); then
+	_diff=$((${#_files[*]} - $n))
+	for ((i=0; i<${_diff}; i++)); do
+	    rm -rf ${_files[$i]}
+	done
+    fi
+}
+
+wait_for_file () {
+    timeout=$1
+    file_name=$2
+
+    logger "waiting for file: $file_name"
+    i=0
+    while (( i < $timeout )); do
+	if [ -e $file_name ]; then
+	    logger "file $file_name exists"
+	    break
+	fi
+	sleep 1
+	((i++))
+    done
+    if [ ! -e $file_name ]; then
+	logger "timed out waiting for file: $file_name"
+	false
+    fi
+}
+
+
 # Only define this function if it has not already been defined in the
 # current environment, which allows the project to override it from
 # its functions.sh file that was previously source'd.
 if [[ $(type -t activateCondaEnv) == "" ]]; then
-    function activateCondaEnv {
+    activateCondaEnv () {
         logger "Activating conda env ${CONDA_ENV}..."
         eval "$(conda shell.bash hook)"
         conda activate $CONDA_ENV
     }
 fi
-
