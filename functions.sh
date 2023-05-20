@@ -94,19 +94,16 @@ unset_tee () {
 }
 
 # Function for running a command that gets killed after a specific timeout and
-# logs a timeout message. This also sets ERRORCODE appropriately.
+# logs a timeout message.
 LAST_EXITCODE=0
-handleTimeout () {
+handle_timeout () {
     _seconds=$1
-    eval "timeout --signal=2 --kill-after=60 $*" || LAST_EXITCODE=$?
-    ERRORCODE=${ERRORCODE:-0}
+    eval "timeout --signal=2 --kill-after=60 $*"
+    LAST_EXITCODE=$?
     if (( $LAST_EXITCODE == 124 )); then
         logger "ERROR: command timed out after ${_seconds} seconds"
     elif (( $LAST_EXITCODE == 137 )); then
         logger "ERROR: command timed out after ${_seconds} seconds, and had to be killed with signal 9"
-    fi
-    if (( ERRORCODE == 0 )); then
-        ERRORCODE=${LAST_EXITCODE}
     fi
 }
 
