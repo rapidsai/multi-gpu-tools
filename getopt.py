@@ -23,6 +23,7 @@ echo $boo  # prints 1
 echo $baz  # prints 33
 """
 
+import builtins
 from argparse import ArgumentParser
 
 
@@ -46,6 +47,9 @@ def getopt_to_argparse(prog_name, opt_parse_string, options_list):
     arg_parser = StderrArgumentParser(prog=prog_name)
 
     for opt_desc in opt_parse_string.split(","):
+        if opt_desc == "":
+            raise RuntimeError(f"invalid option string: {opt_parse_string}")
+
         opt_desc = opt_desc.split(":")
         opt_desc_len = len(opt_desc)
         # option with no arg: "name"
@@ -56,17 +60,17 @@ def getopt_to_argparse(prog_name, opt_parse_string, options_list):
         # required arg: "name:type" or "name:"
         elif opt_desc_len == 2:
             name = f"--{opt_desc[0]}"
-            opt_type = eval(opt_desc[1] or "str")
+            opt_type = getattr(builtins, opt_desc[1] or "str")
             arg_parser.add_argument(name, type=opt_type, required=True)
 
         # optional arg: "name::type" or "name::"
         elif (opt_desc_len == 3) and (opt_desc[1] == ""):
             name = f"--{opt_desc[0]}"
-            opt_type = eval(opt_desc[2] or "str")
+            opt_type = getattr(builtins, opt_desc[2] or "str")
             arg_parser.add_argument(name, type=opt_type, required=False)
 
         else:
-            raise RuntimeError
+            raise RuntimeError(f"invalid option string: {opt_parse_string}")
     try:
         return arg_parser.parse_args(options_list)
     except SystemExit as err:

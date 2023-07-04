@@ -173,15 +173,3 @@ wait_for_file () {
 	false
     fi
 }
-
-
-# Only define this function if it has not already been defined in the
-# current environment, which allows the project to override it from
-# its functions.sh file that was previously source'd.
-if [[ $(type -t activateCondaEnv) == "" ]]; then
-    activateCondaEnv () {
-        logger "Activating conda env ${CONDA_ENV}..."
-        eval "$(conda shell.bash hook)"
-        conda activate $CONDA_ENV
-    }
-fi

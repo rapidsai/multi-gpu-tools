@@ -18,37 +18,30 @@ set -eu -o pipefail
 RAPIDS_MG_TOOLS_DIR=${RAPIDS_MG_TOOLS_DIR:-$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)}
 source ${RAPIDS_MG_TOOLS_DIR}/script-env.sh
 
-if hasArg -h || hasArg --help; then
-    echo "$0 [<option>...]
-where <option> is:
-  #--from-source  - Assume a from-source build and use git to extract meta-data.
-  --from-conda   - Assume a conda install and use conda to extract meta-data.
-  --from-pip     - Assume a pip install and use pip to extract meta-data.
-  --help | -h    - Print this message and exit.
-"
-    exit 0
+param_vals=$(python3 ${RAPIDS_MG_TOOLS_DIR}/getopt.py $0 "packages:str,from-conda,from-pip" "$@")
+eval $param_vals
+
+if (( ($from_conda || $from_pip) == 0 )); then
+    echo "ERROR: must specify one of --from-conda or --from-pip"
+    exit 1
+elif (( ($from_conda && $from_pip) == 1 )); then
+    echo "ERROR: must specify only one of --from-conda or --from-pip"
+    exit 1
 fi
 
-PROJECT_VERSION=""
-PROJECT_BUILD=""
-PROJECT_CHANNEL=""
-PROJECT_REPO_URL=""
-PROJECT_REPO_BRANCH=""
-PROJECT_REPO_TIME=""
+package_list=$(echo $packages | sed 's/,/ /g')
 
-if hasArg --from-conda; then
-    # FIXME: make PRIMARY_CONDA_PACKAGE_NAME an arg and remove from default-config
-    if [ ! -v PRIMARY_CONDA_PACKAGE_NAME ] || [ -z $PRIMARY_CONDA_PACKAGE_NAME ]; then
-	echo "PRIMARY_CONDA_PACKAGE_NAME must be set to the name of the conda package to extract version info for."
-	exit 1
-    fi
-    # output format is: name version build channel
-    conda_output=$(conda list | grep "^${PRIMARY_CONDA_PACKAGE_NAME}")
-    PROJECT_VERSION=$(echo $conda_output | awk '{print $2}')
-    PROJECT_BUILD=$(echo $conda_output | awk '{print $3}')
-    PROJECT_CHANNEL=$(echo $conda_output | awk '{print $4}')
+if (( $from_conda == 1 )); then
+    for package in $package_list; do
+	PACKAGE=$(echo $package | sed 's/[a-z]/\U&/g')
+	# output format is: name version build channel
+	conda_output=$(conda list | grep "^${package}")
+	echo "${PACKAGE}_VERSION=$(echo $conda_output | awk '{print $2}')"
+	echo "${PACKAGE}_BUILD=$(echo $conda_output | awk '{print $3}')"
+	echo "${PACKAGE}_CHANNEL=$(echo $conda_output | awk '{print $4}')"
+    done
 
-# elif hasArg --from-source; then
+# elif (( $from_source == 1 )); then
 #     # FIXME: this assumes the sources are always in
 #     # ${WORKSPACE}/${REPO_DIR_NAME}. That should be the default and a
 #     # --source-dir option should be added to override.
@@ -57,20 +50,13 @@ if hasArg --from-conda; then
 #     PROJECT_REPO_BRANCH=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --abbrev-ref HEAD)
 #     PROJECT_REPO_TIME=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git log -n1 --pretty='%ct' ${PROJECT_VERSION})
 
-elif hasArg --from-pip; then
-    # FIXME: write this
-    PROJECT_VERSION="FIXME-for-pip"
-    PROJECT_BUILD="FIXME-for-pip"
-    PROJECT_CHANNEL="FIXME-for-pip"
-
 else
-    echo "ERROR: must specify either --from-source or --from-conda or --from-pip"
-    exit 1
+    # FIXME: write this
+    pip_output=$(pip list)
+    for package in $package_list; do
+	PACKAGE=$(echo $package | sed 's/[a-z]/\U&/g')
+	echo "${PACKAGE}_VERSION=FIXME-for-pip"
+	echo "${PACKAGE}_BUILD=FIXME-for-pip"
+	echo "${PACKAGE}_CHANNEL=FIXME-for-pip"
+    done
 fi
-
-echo "PROJECT_VERSION=\"$PROJECT_VERSION\""
-echo "PROJECT_BUILD=\"$PROJECT_BUILD\""
-echo "PROJECT_CHANNEL=\"$PROJECT_CHANNEL\""
-echo "PROJECT_REPO_URL=\"$PROJECT_REPO_URL\""
-echo "PROJECT_REPO_BRANCH=\"$PROJECT_REPO_BRANCH\""
-echo "PROJECT_REPO_TIME=\"$PROJECT_REPO_TIME\""

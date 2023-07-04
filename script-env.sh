@@ -20,7 +20,7 @@
 # set here.
 # Projects should always call this script to ensure a complete set of
 # script vars and functions are available.
-if [ -n "$PROJECT_DIR" ]; then
+if [ -v PROJECT_DIR ] && [ -n "$PROJECT_DIR" ]; then
     if [ -e ${PROJECT_DIR}/config.sh ]; then
 	source ${PROJECT_DIR}/config.sh
     else
