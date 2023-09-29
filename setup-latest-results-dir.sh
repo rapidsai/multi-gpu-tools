@@ -58,9 +58,12 @@ ln -s ${results_root_dir}/${DATE} $latest_results_dir
 mkdir -p $testing_results_dir
 mkdir -p $benchmark_results_dir
 
-old_asv_dir=$previous_results/benchmarks/asv
-if [ -d $old_asv_dir ]; then
-    cp -r $old_asv_dir $benchmark_results_dir
+# copy over old regressions if they exist. otherwise, create a new directory to store them
+previous_regressions=${previous_results}/benchmarks/results
+if [ -d $previous_regressions ]; then
+    cp -r $previous_regressions ${benchmark_results_dir}/results
+else
+    mkdir -p ${benchmark_results_dir}/results
 fi
 
 # Write paths.sh file for use by other scripts that use the vars set by
