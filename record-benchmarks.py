@@ -2,10 +2,14 @@ import glob
 import argparse
 import pandas as pd
 from pathlib import Path
+import platform
+from pynvml import smi
+import yaml
+import os
+import math
 
-# get the date from the 'latest' sym link with nicer formatting
-def get_date_from_path(latest):
-    res =  Path(latest).resolve().name#.split('_')[0]
+def get_timestamp_from_path(latest):
+    res =  Path(latest).resolve().name
     return res
 
 # read the pytest-results.txt file and return a df in the format we want
@@ -19,18 +23,25 @@ def pytest_results_to_df(path, run_date):
     df = df.drop(df.index[0])
     return df
 
+# convert bytes to biggest denomination
+def convert_size(size_bytes):
+   if size_bytes == 0:
+       return "0B"
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return "%s %s" % (s, size_name[i])
+
 ################################################################################
 
 # get the path to latest nightly results directory
 # eg. /gpfs/fs1/projects/sw_rapids/users/rratzel/cugraph-results/latest
 parser = argparse.ArgumentParser(description="Script used to copy over old benchmark timings")
 parser.add_argument('--latest-results', required=True, help='Latest results directory', dest="results_dir")
-# might not need this since it's always ${results}/benchmarks
-# parser.add_argument('--benchmark-results', required=True, help='Benchmark results directory', dest="bench_dir")
 args = parser.parse_args()
 
 results_dir = Path(args.results_dir)
-# bench_dir = Path(args.bench_dir)
 bench_dir = results_dir / "benchmarks"
 
 # get each of the cugraph benchmark run directories
@@ -43,11 +54,10 @@ for run in all_benchmark_runs:
     run_type = Path(run).name
     results_file = bench_dir / run_type / 'pytest-results.txt'
     output_file = results_dir / (run_type + ".csv")
-    run_date = get_date_from_path('cugraph-results/latest')
+    run_date = get_timestamp_from_path('cugraph-results/latest')
     
     # if previous csv files were generated, append tonight's results to the end
     if output_file.exists():
-        print("appending regressions to old results")
         existing_df = pd.read_csv(output_file)
         tonight_df = pytest_results_to_df(results_file, run_date)
         pd.concat([existing_df, tonight_df]).to_csv(output_file, index=False)
@@ -58,16 +68,32 @@ for run in all_benchmark_runs:
             print(f"creating a new results file for {run_type} on {run_date}")
             df = pytest_results_to_df(results_file, run_date)
             df.to_csv(output_file, index=False)
-        else:
-            # TODO: how to handle results that don't exist? ex. 64-GPU didn't run so no pytest-results.txt file
-            print(f"{run_type} results not found")
 
-"""
-1. if there are benchmarks from last night, copy over the results.
-    -> for todays benchmarks, if the results were generated, append the contents to the end of the csv files
-2. if there are no benchmarks from last night, create a blank regressions directory and store tonight's result in new csv files
+uname = platform.uname()
+python_ver = 'python_ver: ' + platform.python_version()
+cuda_version = os.system("nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p'")
 
-storing metadata:
+# get info for all gpu devices
+smi.nvmlInit()
+num_gpus = smi.nvmlDeviceGetCount()
+gpu_info = []
+for i in range(num_gpus):
+    gpuDeviceHandle = smi.nvmlDeviceGetHandleByIndex(i)
+    gpuType = smi.nvmlDeviceGetName(gpuDeviceHandle).decode()
+    gpuRam = smi.nvmlDeviceGetMemoryInfo(gpuDeviceHandle).total
+    gpu_info.append([gpuType, convert_size(gpuRam)])
 
-*perhaps we can allow devs to add notes when running specific runs. stored in the csv files.
-"""
+meta = {
+    'os_name': uname[0],
+    'node_name': uname[1],
+    'os_release': uname[2],
+    'os_version': uname[3],
+    'machine_hw': uname[4],
+    'python_version': platform.python_version(),
+    'cuda_version': cuda_version,
+    'num_gpus': num_gpus,
+    'gpu_info': gpu_info,
+}
+
+with open(results_dir / 'meta.yaml', 'w') as file:
+    yaml.dump(meta, file, sort_keys=False)
