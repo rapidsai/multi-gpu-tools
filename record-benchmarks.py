@@ -8,9 +8,6 @@ import yaml
 import os
 import math
 
-def get_timestamp_from_path(latest):
-    res =  Path(latest).resolve().name
-    return res
 
 # read the pytest-results.txt file and return a df in the format we want
 def pytest_results_to_df(path, run_date):
@@ -33,6 +30,34 @@ def convert_size(size_bytes):
    s = round(size_bytes / p, 2)
    return "%s %s" % (s, size_name[i])
 
+def write_metadata():
+    uname = platform.uname()
+    python_ver = 'python_ver: ' + platform.python_version()
+    cuda_version = os.system("nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p'")
+    # get info for all gpu devices
+    smi.nvmlInit()
+    num_gpus = smi.nvmlDeviceGetCount()
+    gpu_info = []
+    for i in range(num_gpus):
+        gpuDeviceHandle = smi.nvmlDeviceGetHandleByIndex(i)
+        gpuType = smi.nvmlDeviceGetName(gpuDeviceHandle).decode()
+        gpuRam = smi.nvmlDeviceGetMemoryInfo(gpuDeviceHandle).total
+        gpu_info.append([gpuType, convert_size(gpuRam)])
+    meta = {
+        'os_name': uname[0],
+        'node_name': uname[1],
+        'os_release': uname[2],
+        'os_version': uname[3],
+        'machine_hw': uname[4],
+        'python_version': platform.python_version(),
+        'cuda_version': cuda_version,
+        'num_gpus': num_gpus,
+        'gpu_info': gpu_info,
+    }
+    with open(results_dir / 'meta.yaml', 'w+') as file:
+        yaml.dump(meta, file, sort_keys=False)
+
+
 ################################################################################
 
 # get the path to latest nightly results directory
@@ -41,8 +66,9 @@ parser = argparse.ArgumentParser(description="Script used to copy over old bench
 parser.add_argument('--latest-results', required=True, help='Latest results directory', dest="results_dir")
 args = parser.parse_args()
 
-results_dir = Path(args.results_dir)
-bench_dir = results_dir / "benchmarks"
+latest_results_dir = Path(args.results_dir)
+run_date = latest_results_dir.resolve().name
+bench_dir = latest_results_dir / "benchmarks"
 
 # get each of the cugraph benchmark run directories
 # eg latest/benchmarks/2-GPU  latest/benchmarks/8-GPU  ... etc
@@ -54,7 +80,6 @@ for run in all_benchmark_runs:
     run_type = Path(run).name
     results_file = bench_dir / run_type / 'pytest-results.txt'
     output_file = results_dir / (run_type + ".csv")
-    run_date = get_timestamp_from_path('cugraph-results/latest')
     
     # if previous csv files were generated, append tonight's results to the end
     if output_file.exists():
@@ -69,31 +94,4 @@ for run in all_benchmark_runs:
             df = pytest_results_to_df(results_file, run_date)
             df.to_csv(output_file, index=False)
 
-uname = platform.uname()
-python_ver = 'python_ver: ' + platform.python_version()
-cuda_version = os.system("nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p'")
-
-# get info for all gpu devices
-smi.nvmlInit()
-num_gpus = smi.nvmlDeviceGetCount()
-gpu_info = []
-for i in range(num_gpus):
-    gpuDeviceHandle = smi.nvmlDeviceGetHandleByIndex(i)
-    gpuType = smi.nvmlDeviceGetName(gpuDeviceHandle).decode()
-    gpuRam = smi.nvmlDeviceGetMemoryInfo(gpuDeviceHandle).total
-    gpu_info.append([gpuType, convert_size(gpuRam)])
-
-meta = {
-    'os_name': uname[0],
-    'node_name': uname[1],
-    'os_release': uname[2],
-    'os_version': uname[3],
-    'machine_hw': uname[4],
-    'python_version': platform.python_version(),
-    'cuda_version': cuda_version,
-    'num_gpus': num_gpus,
-    'gpu_info': gpu_info,
-}
-
-with open(results_dir / 'meta.yaml', 'w') as file:
-    yaml.dump(meta, file, sort_keys=False)
+write_metadata()
