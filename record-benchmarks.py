@@ -85,7 +85,9 @@ for run in all_benchmark_runs:
     if output_file.exists():
         existing_df = pd.read_csv(output_file)
         tonight_df = pytest_results_to_df(results_file, run_date)
-        pd.concat([existing_df, tonight_df]).to_csv(output_file, index=False)
+        res = pd.concat([existing_df, tonight_df])
+        res.to_csv(output_file, index=False)
+        res.to_html(results_dir / (run_type + '.html'))
 
     # otherwise, create new result file for each successful run
     else:
@@ -93,5 +95,6 @@ for run in all_benchmark_runs:
             print(f"creating a new results file for {run_type} on {run_date}")
             df = pytest_results_to_df(results_file, run_date)
             df.to_csv(output_file, index=False)
+            df.to_html(results_dir / (run_type + '.html'), index=False)
 
 write_metadata()
