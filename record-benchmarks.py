@@ -11,8 +11,13 @@ import math
 
 # read the pytest-results.txt file and return a df in the format we want
 def pytest_results_to_df(path, run_date):
-    df = pd.read_csv(path, sep=" ", header=None)[[2, 3]]
-    date_row = {2: 'date', 3: run_date} # add the run date
+    df = pd.read_csv(path, sep=" ", header=None)
+    # preserve failed/skipped statuses
+    df.loc[df[1] == 'FAILED', 3] = 'FAILED'
+    df.loc[df[1] == 'SKIPPED', 3] = 'SKIPPED'
+    df = df[[2, 3]]
+    # add the run date
+    date_row = {2: 'date', 3: run_date}
     df.loc[1:] = df.loc[:]
     df.loc[0] = date_row
     df = df.T.reset_index(drop=True)

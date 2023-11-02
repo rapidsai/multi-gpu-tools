@@ -14,6 +14,7 @@
 DATE=$(date --utc "+%Y%m%d_%H%M%S")_UTC
 TESTING_RESULTS_DIR_NAME=tests
 BENCHMARK_RESULTS_DIR_NAME=benchmarks
+GNN_RESULTS_DIR_NAME=gnn
 METADATA_FILE_NAME=metadata.sh
 
 # Most are defined using the bash := or :- syntax, which means they
