@@ -47,7 +47,6 @@ fi
 latest_results_dir=${results_root_dir}/latest
 testing_results_dir=${latest_results_dir}/${TESTING_RESULTS_DIR_NAME}
 benchmark_results_dir=${latest_results_dir}/${BENCHMARK_RESULTS_DIR_NAME}
-gnn_results_dir=${latest_results_dir}/${GNN_RESULTS_DIR_NAME}
 metadata_file=${latest_results_dir}/${METADATA_FILE_NAME}
 
 mkdir -p ${results_root_dir}/${DATE}
@@ -58,7 +57,6 @@ rm -rf $latest_results_dir
 ln -s ${results_root_dir}/${DATE} $latest_results_dir
 mkdir -p $testing_results_dir
 mkdir -p $benchmark_results_dir
-mkdir -p $gnn_results_dir
 
 # copy over old regressions if they exist. otherwise, create a new directory to store them
 previous_regressions=${previous_results}/benchmarks/results
