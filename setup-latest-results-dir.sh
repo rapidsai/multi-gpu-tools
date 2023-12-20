@@ -71,7 +71,6 @@ fi
 # results dir.
 echo "TESTING_RESULTS_DIR=$testing_results_dir" >> ${latest_results_dir}/paths.sh
 echo "BENCHMARK_RESULTS_DIR=$benchmark_results_dir" >> ${latest_results_dir}/paths.sh
-echo "GNN_RESULTS_DIR=$gnn_results_dir" >> ${latest_results_dir}/paths.sh
 # The container may have a /metadata.sh file that can be sourced to set env
 # vars with info about the image that can be used in reports, etc.
 if [ -e /metadata.sh ]; then
