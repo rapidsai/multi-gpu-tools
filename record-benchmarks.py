@@ -17,10 +17,12 @@ import math
 import os
 from pathlib import Path
 
-import yaml
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import platform
 from pynvml import smi
+import yaml
 
 
 def get_args():
@@ -108,34 +110,55 @@ def write_metadata():
         yaml.dump(meta, file, sort_keys=False)
 
 
-def remove_path_from_title(df):
+def get_plotting_df(path):
     """
-    Strip the './' prefix from the benchmark names.
+    Reads the results and processes them inside a DF for plotting purposes.
+    - The './' prefix is stripped from benchmark names
+    - Remove invalid dtypes
+    - Convert all columns except 'date' to floats
 
     Parameters:
-    df (DataFrame): a pandas DataFrame that contains the raw benchmark names from the pytest-results.txt file.
+    path (str): the path to the .csv file to be plotted.
 
     Returns:
-    df: a new DataFrame with the fixed column names.
+    df: a pandas DataFrame with a column of timestamps and columns for each MG benchmark result for an N-GPU run.
     """
+    df = pd.read_csv(path, sep=',')
     columns = df.columns.drop(["date"])
     for col in columns:
         newname = col[2:]
         df.rename(columns={col: newname}, inplace=True)
+    df.replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
+    float_columns = [col for col in df.columns if col != 'date']
+    df[float_columns] = df[float_columns].astype(float)
+
     return df
 
-def get_last_recorded_date(df):
+def plot_benchmark_results(df, dest):
     """
-    Return the last recorded date from a results df
+    Generate individual plots of each nightly benchmark result and save them as an image.
 
     Parameters:
-    df (DataFrame): results df
-
-    Returns:
-    a DateTime object of the most recent-run
+    - df: a DataFrame containing a 'date' column and benchmark result column(s)
+    - dest (str): the path to save the plots in
     """
-    last_row_date= df.iloc[-1]['date']
-    return datetime.strptime(last_row_date, '%Y%m%d_%H%M%S_UTC')
+    save_path = Path(dest)
+    if not save_path.exists():
+        save_path.mkdir(parents=True)
+
+    for col in df.columns.drop('date'):
+        x_column = 'date'
+        y_column = col
+        plt_size = (30,2)
+
+        plt.figure(figsize=plt_size)
+        plt.plot(df[x_column], df[y_column], marker='.', markersize=7)
+        plt.xticks([])
+        plt.grid(True, linestyle='--', color='gray', alpha=0.1)
+        plt.tight_layout()
+        plt.savefig(save_path / (y_column + '.jpg'))
+        plt.close()
+
 
 ################################################################################
 
@@ -150,9 +173,9 @@ if __name__ == '__main__':
     # get each of the cugraph benchmark run directories
     # eg latest/benchmarks/2-GPU  latest/benchmarks/8-GPU  ... etc
     results_dir = bench_dir / "results"
+    all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
 
     # RECORD NIGHTLY RESULTS
-    all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
     for run in all_benchmark_runs:
         run_type = Path(run).name
         results_file = bench_dir / run_type / 'pytest-results.txt'
@@ -164,7 +187,8 @@ if __name__ == '__main__':
             tonight_df = pytest_results_to_df(results_file, run_date)
             res = pd.concat([existing_df, tonight_df])
             res.to_csv(output_file, index=False)
-            res.to_html(results_dir / (run_type + '.html'))
+            # FIXME: figure out a better way to store the raw .html tables or remove them completely?
+            # res.to_html(results_dir / (run_type + '.html'))
 
         # otherwise, create new result file for each successful run
         else:
@@ -172,15 +196,13 @@ if __name__ == '__main__':
                 print(f"creating a new results file for {run_type} on {run_date}")
                 df = pytest_results_to_df(results_file, run_date)
                 df.to_csv(output_file, index=False)
-                df.to_html(results_dir / (run_type + '.html'), index=False)
+                # df.to_html(results_dir / (run_type + '.html'), index=False)
 
 
     csv_files = [file for file in results_dir.iterdir() if file.is_file() and file.suffix == ".csv"]
+
     # GENERATE HTML PLOTS
     for file in csv_files:
-        df = pd.read_csv(csv_files[0], sep=',')
-        df = remove_path_from_title(df)
-        df.replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
-        # Convert all columns except 'date' to floats
-        float_columns = [col for col in df.columns if col != 'date']
-        df[float_columns] = df[float_columns].astype(float)
+        run_type = file.name.rstrip('.csv')
+        df = get_plotting_df(file)
+        plot_benchmark_results(df, results_dir / 'plots'/ run_type)
