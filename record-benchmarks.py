@@ -1,14 +1,39 @@
+# Copyright (c) 2023, NVIDIA CORPORATION.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import glob
 import math
 import os
-import yaml
 from pathlib import Path
 
+import yaml
 import pandas as pd
 import platform
 from pynvml import smi
 
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--latest-results',
+        required=True,
+        help='Latest results directory',
+        dest="results_dir"
+    )
+
+    return parser.parse_args()
 
 def pytest_results_to_df(path, run_date):
     """
@@ -21,8 +46,8 @@ def pytest_results_to_df(path, run_date):
     Returns:
     df: a pandas DataFrame containing one row of all benchmark results from the last run.
     """
-
     df = pd.read_csv(path, sep=" ", header=None)
+    df[3] = df[3].astype('object')
     # preserve failed/skipped statuses
     df.loc[df[1] == 'FAILED', 3] = 'FAILED'
     df.loc[df[1] == 'SKIPPED', 3] = 'SKIPPED'
@@ -83,15 +108,40 @@ def write_metadata():
         yaml.dump(meta, file, sort_keys=False)
 
 
+def remove_path_from_title(df):
+    """
+    Strip the './' prefix from the benchmark names.
+
+    Parameters:
+    df (DataFrame): a pandas DataFrame that contains the raw benchmark names from the pytest-results.txt file.
+
+    Returns:
+    df: a new DataFrame with the fixed column names.
+    """
+    columns = df.columns.drop(["date"])
+    for col in columns:
+        newname = col[2:]
+        df.rename(columns={col: newname}, inplace=True)
+    return df
+
+def get_last_recorded_date(df):
+    """
+    Return the last recorded date from a results df
+
+    Parameters:
+    df (DataFrame): results df
+
+    Returns:
+    a DateTime object of the most recent-run
+    """
+    last_row_date= df.iloc[-1]['date']
+    return datetime.strptime(last_row_date, '%Y%m%d_%H%M%S_UTC')
+
 ################################################################################
 
 # call __main__ function
 if __name__ == '__main__':
-    # get the path to latest nightly results directory
-    # eg. /gpfs/fs1/projects/sw_rapids/users/rratzel/cugraph-results/latest
-    parser = argparse.ArgumentParser(description="Script used to copy over old benchmark timings")
-    parser.add_argument('--latest-results', required=True, help='Latest results directory', dest="results_dir")
-    args = parser.parse_args()
+    args = get_args()
 
     latest_results_dir = Path(args.results_dir)
     run_date = latest_results_dir.resolve().name
@@ -101,31 +151,7 @@ if __name__ == '__main__':
     # eg latest/benchmarks/2-GPU  latest/benchmarks/8-GPU  ... etc
     results_dir = bench_dir / "results"
 
-<<<<<<< Updated upstream
-# get results from tonight's runs
-all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
-for run in all_benchmark_runs:
-    run_type = Path(run).name
-    results_file = bench_dir / run_type / 'pytest-results.txt'
-    output_file = results_dir / (run_type + ".csv")
-    
-    # if previous csv files were generated, append tonight's results to the end
-    if output_file.exists():
-        existing_df = pd.read_csv(output_file)
-        tonight_df = pytest_results_to_df(results_file, run_date)
-        res = pd.concat([existing_df, tonight_df])
-        res.to_csv(output_file, index=False)
-        res.to_html(results_dir / (run_type + '.html'))
-
-    # otherwise, create new result file for each successful run
-    else:
-        if results_file.exists():
-            print(f"creating a new results file for {run_type} on {run_date}")
-            df = pytest_results_to_df(results_file, run_date)
-            df.to_csv(output_file, index=False)
-            df.to_html(results_dir / (run_type + '.html'), index=False)
-=======
-    # get results from tonight's runs
+    # RECORD NIGHTLY RESULTS
     all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
     for run in all_benchmark_runs:
         run_type = Path(run).name
@@ -136,7 +162,9 @@ for run in all_benchmark_runs:
         if output_file.exists():
             existing_df = pd.read_csv(output_file)
             tonight_df = pytest_results_to_df(results_file, run_date)
-            pd.concat([existing_df, tonight_df]).to_csv(output_file, index=False)
+            res = pd.concat([existing_df, tonight_df])
+            res.to_csv(output_file, index=False)
+            res.to_html(results_dir / (run_type + '.html'))
 
         # otherwise, create new result file for each successful run
         else:
@@ -144,6 +172,15 @@ for run in all_benchmark_runs:
                 print(f"creating a new results file for {run_type} on {run_date}")
                 df = pytest_results_to_df(results_file, run_date)
                 df.to_csv(output_file, index=False)
->>>>>>> Stashed changes
+                df.to_html(results_dir / (run_type + '.html'), index=False)
 
-    write_metadata()
+
+    csv_files = [file for file in results_dir.iterdir() if file.is_file() and file.suffix == ".csv"]
+    # GENERATE HTML PLOTS
+    for file in csv_files:
+        df = pd.read_csv(csv_files[0], sep=',')
+        df = remove_path_from_title(df)
+        df.replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
+        # Convert all columns except 'date' to floats
+        float_columns = [col for col in df.columns if col != 'date']
+        df[float_columns] = df[float_columns].astype(float)
