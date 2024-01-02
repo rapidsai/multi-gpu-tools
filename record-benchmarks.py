@@ -1,16 +1,27 @@
-import glob
 import argparse
-import pandas as pd
+import glob
+import math
+import os
+import yaml
 from pathlib import Path
+
+import pandas as pd
 import platform
 from pynvml import smi
-import yaml
-import os
-import math
 
 
-# read the pytest-results.txt file and return a df in the format we want
 def pytest_results_to_df(path, run_date):
+    """
+    Reads the most recent pytest results file and stores them in a DataFrame.
+
+    Parameters:
+    - path (str): the path to the pytest-results.txt file.
+    - run_date (str): the UTC formatted date of the benchmark run.
+
+    Returns:
+    df: a pandas DataFrame containing one row of all benchmark results from the last run.
+    """
+
     df = pd.read_csv(path, sep=" ", header=None)
     # preserve failed/skipped statuses
     df.loc[df[1] == 'FAILED', 3] = 'FAILED'
@@ -25,17 +36,26 @@ def pytest_results_to_df(path, run_date):
     df = df.drop(df.index[0])
     return df
 
-# convert bytes to biggest denomination
 def convert_size(size_bytes):
-   if size_bytes == 0:
-       return "0B"
-   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-   i = int(math.floor(math.log(size_bytes, 1024)))
-   p = math.pow(1024, i)
-   s = round(size_bytes / p, 2)
-   return "%s %s" % (s, size_name[i])
+    """
+    Convert bytes to biggest denomination.
+    
+    Parameters:
+    size_bytes (str): the number of bytes to be converted.
+
+    Returns:
+    (str): the properly rounded size denomination.
+    """
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s %s" % (s, size_name[i])
 
 def write_metadata():
+    """ Writes some metadata information to a metadata.yaml file. """
     uname = platform.uname()
     python_ver = 'python_ver: ' + platform.python_version()
     cuda_version = os.system("nvcc --version | sed -n 's/^.*release \([0-9]\+\.[0-9]\+\).*$/\1/p'")
@@ -65,20 +85,23 @@ def write_metadata():
 
 ################################################################################
 
-# get the path to latest nightly results directory
-# eg. /gpfs/fs1/projects/sw_rapids/users/rratzel/cugraph-results/latest
-parser = argparse.ArgumentParser(description="Script used to copy over old benchmark timings")
-parser.add_argument('--latest-results', required=True, help='Latest results directory', dest="results_dir")
-args = parser.parse_args()
+# call __main__ function
+if __name__ == '__main__':
+    # get the path to latest nightly results directory
+    # eg. /gpfs/fs1/projects/sw_rapids/users/rratzel/cugraph-results/latest
+    parser = argparse.ArgumentParser(description="Script used to copy over old benchmark timings")
+    parser.add_argument('--latest-results', required=True, help='Latest results directory', dest="results_dir")
+    args = parser.parse_args()
 
-latest_results_dir = Path(args.results_dir)
-run_date = latest_results_dir.resolve().name
-bench_dir = latest_results_dir / "benchmarks"
+    latest_results_dir = Path(args.results_dir)
+    run_date = latest_results_dir.resolve().name
+    bench_dir = latest_results_dir / "benchmarks"
 
-# get each of the cugraph benchmark run directories
-# eg latest/benchmarks/2-GPU  latest/benchmarks/8-GPU  ... etc
-results_dir = bench_dir / "results"
+    # get each of the cugraph benchmark run directories
+    # eg latest/benchmarks/2-GPU  latest/benchmarks/8-GPU  ... etc
+    results_dir = bench_dir / "results"
 
+<<<<<<< Updated upstream
 # get results from tonight's runs
 all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
 for run in all_benchmark_runs:
@@ -101,5 +124,26 @@ for run in all_benchmark_runs:
             df = pytest_results_to_df(results_file, run_date)
             df.to_csv(output_file, index=False)
             df.to_html(results_dir / (run_type + '.html'), index=False)
+=======
+    # get results from tonight's runs
+    all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
+    for run in all_benchmark_runs:
+        run_type = Path(run).name
+        results_file = bench_dir / run_type / 'pytest-results.txt'
+        output_file = results_dir / (run_type + ".csv")
+        
+        # if previous csv files were generated, append tonight's results to the end
+        if output_file.exists():
+            existing_df = pd.read_csv(output_file)
+            tonight_df = pytest_results_to_df(results_file, run_date)
+            pd.concat([existing_df, tonight_df]).to_csv(output_file, index=False)
 
-write_metadata()
+        # otherwise, create new result file for each successful run
+        else:
+            if results_file.exists():
+                print(f"creating a new results file for {run_type} on {run_date}")
+                df = pytest_results_to_df(results_file, run_date)
+                df.to_csv(output_file, index=False)
+>>>>>>> Stashed changes
+
+    write_metadata()
