@@ -13,10 +13,12 @@
 
 import argparse
 import glob
+from itertools import groupby
 import math
 import os
 from pathlib import Path
 
+from jinja2 import Environment, FileSystemLoader
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -31,8 +33,13 @@ def get_args():
     parser.add_argument(
         '--latest-results',
         required=True,
-        help='Latest results directory',
-        dest="results_dir"
+        help='Latest results directory'
+    )
+
+    parser.add_argument(
+        '--template-dir',
+        required=True,
+        help='Directory containing html templates'
     )
 
     return parser.parse_args()
@@ -63,7 +70,7 @@ def pytest_results_to_df(path, run_date):
     df = df.drop(df.index[0])
     return df
 
-def convert_size(size_bytes):
+def _convert_size(size_bytes):
     """
     Convert bytes to biggest denomination.
     
@@ -80,6 +87,16 @@ def convert_size(size_bytes):
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
+
+def _group_integers_into_ranges(lst):
+    ranges = []
+    for k, g in groupby(enumerate(lst), lambda i_x: i_x[0] - i_x[1]):
+        group = list(map(lambda i_x: i_x[1], g))
+        if len(group) == 1:
+            ranges.append((group[0], group[0]))
+        else:
+            ranges.append((group[0],group[-1]))
+    return ranges
 
 def write_metadata():
     """ Writes some metadata information to a metadata.yaml file. """
@@ -110,54 +127,77 @@ def write_metadata():
         yaml.dump(meta, file, sort_keys=False)
 
 
-def get_plotting_df(path):
+def plot_benchmark_results(path, dest):
     """
     Reads the results and processes them inside a DF for plotting purposes.
     - The './' prefix is stripped from benchmark names
     - Remove invalid dtypes
     - Convert all columns except 'date' to floats
+    Then, generate individual plots of each nightly benchmark result and save them as an image.
 
     Parameters:
-    path (str): the path to the .csv file to be plotted.
-
-    Returns:
-    df: a pandas DataFrame with a column of timestamps and columns for each MG benchmark result for an N-GPU run.
-    """
-    df = pd.read_csv(path, sep=',')
-    columns = df.columns.drop(["date"])
-    for col in columns:
-        newname = col[2:]
-        df.rename(columns={col: newname}, inplace=True)
-    df.replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
-    float_columns = [col for col in df.columns if col != 'date']
-    df[float_columns] = df[float_columns].astype(float)
-
-    return df
-
-def plot_benchmark_results(df, dest):
-    """
-    Generate individual plots of each nightly benchmark result and save them as an image.
-
-    Parameters:
-    - df: a DataFrame containing a 'date' column and benchmark result column(s)
+    - path (str): the path to the .csv file to be plotted.
     - dest (str): the path to save the plots in
     """
+    df = pd.read_csv(path, sep=',')
+    x_col = 'date'
+    y_cols = df.columns.drop(["date"])
+    for col in y_cols:
+        newname = col[2:]
+        df.rename(columns={col: newname}, inplace=True)
+
     save_path = Path(dest)
     if not save_path.exists():
         save_path.mkdir(parents=True)
 
-    for col in df.columns.drop('date'):
-        x_column = 'date'
-        y_column = col
-        plt_size = (30,2)
+    for y_col in df.columns.drop(x_col):
+        failed_rows = df[df[y_col].isin(['FAILED']) | pd.isna(df[y_col])].index
+        skipped_rows = df[df[y_col].isin(['SKIPPED'])].index
 
+        red_ranges = _group_integers_into_ranges(failed_rows)
+        yellow_ranges = _group_integers_into_ranges(skipped_rows)
+
+        df[y_col].replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
+        df[y_col] = df[y_col].astype(float)
+
+        plt_size = (40,4)
         plt.figure(figsize=plt_size)
-        plt.plot(df[x_column], df[y_column], marker='.', markersize=7)
+        plt.plot(df[x_col], df[y_col], marker='.', markersize=8)
+
+        if red_ranges:
+            for start, end in red_ranges:
+                plt.axvspan(start, end, facecolor='red', alpha=0.15)
+        if yellow_ranges:
+            for start, end in yellow_ranges:
+                plt.axvspan(start, end, facecolor='orange', alpha=0.15)
+
         plt.xticks([])
         plt.grid(True, linestyle='--', color='gray', alpha=0.1)
         plt.tight_layout()
-        plt.savefig(save_path / (y_column + '.jpg'))
+        plt.savefig(save_path / (y_col + '.jpg'), dpi=300)
         plt.close()
+
+
+def render_template(template_dir, name, contents):
+    """
+    Render an HTML template and replace missing fields.
+
+    Parameters:
+    - template_dir (pathlib Path obj): directory containing templates.
+    - name (str): name of the template.
+    - contents (dict): fields being used to fill out the template.
+
+    Returns:
+    str: the rendered contents of an HTML file.
+    """
+    if not template_dir.exists():
+        raise RuntimeError(f'{template_dir} does not exist')
+
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template(name)
+    rendered_content = template.render(contents)
+
+    return rendered_content
 
 
 ################################################################################
@@ -166,7 +206,8 @@ def plot_benchmark_results(df, dest):
 if __name__ == '__main__':
     args = get_args()
 
-    latest_results_dir = Path(args.results_dir)
+    latest_results_dir = Path(args.latest_results)
+    template_dir = Path(args.template_dir)
     run_date = latest_results_dir.resolve().name
     bench_dir = latest_results_dir / "benchmarks"
 
@@ -176,33 +217,51 @@ if __name__ == '__main__':
     all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
 
     # RECORD NIGHTLY RESULTS
-    for run in all_benchmark_runs:
-        run_type = Path(run).name
-        results_file = bench_dir / run_type / 'pytest-results.txt'
-        output_file = results_dir / (run_type + ".csv")
+    # TODO: UNCOMMENT
+    # for run in all_benchmark_runs:
+    #     run_type = Path(run).name
+    #     results_file = bench_dir / run_type / 'pytest-results.txt'
+    #     output_file = results_dir / (run_type + ".csv")
         
-        # if previous csv files were generated, append tonight's results to the end
-        if output_file.exists():
-            existing_df = pd.read_csv(output_file)
-            tonight_df = pytest_results_to_df(results_file, run_date)
-            res = pd.concat([existing_df, tonight_df])
-            res.to_csv(output_file, index=False)
-            # FIXME: figure out a better way to store the raw .html tables or remove them completely?
-            # res.to_html(results_dir / (run_type + '.html'))
+    #     # if previous csv files were generated, append tonight's results to the end
+    #     if output_file.exists():
+    #         existing_df = pd.read_csv(output_file)
+    #         tonight_df = pytest_results_to_df(results_file, run_date)
+    #         res = pd.concat([existing_df, tonight_df])
+    #         res.to_csv(output_file, index=False)
+    #         # FIXME: figure out a better way to store the raw .html tables or remove them completely?
+    #         # res.to_html(results_dir / (run_type + '.html'))
 
-        # otherwise, create new result file for each successful run
-        else:
-            if results_file.exists():
-                print(f"creating a new results file for {run_type} on {run_date}")
-                df = pytest_results_to_df(results_file, run_date)
-                df.to_csv(output_file, index=False)
-                # df.to_html(results_dir / (run_type + '.html'), index=False)
+    #     # otherwise, create new result file for each successful run
+    #     else:
+    #         if results_file.exists():
+    #             print(f"creating a new results file for {run_type} on {run_date}")
+    #             df = pytest_results_to_df(results_file, run_date)
+    #             df.to_csv(output_file, index=False)
+    #             # df.to_html(results_dir / (run_type + '.html'), index=False)
 
 
     csv_files = [file for file in results_dir.iterdir() if file.is_file() and file.suffix == ".csv"]
 
     # GENERATE HTML PLOTS
     for file in csv_files:
-        run_type = file.name.rstrip('.csv')
-        df = get_plotting_df(file)
-        plot_benchmark_results(df, results_dir / 'plots'/ run_type)
+        run_type = file.name[:-4]
+        plot_dir = results_dir / 'plots'  / run_type
+        contents = {
+            'run_type': run_type,
+            'table_contents': ''
+        }
+
+        plot_benchmark_results(file, plot_dir)
+
+        for plot in plot_dir.iterdir():
+            file_name = plot.name
+            benchmark_name = file_name[:-4]
+            a = 'file://' + str(plot) # TODO: remove once testing on server
+            print(benchmark_name)
+            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><img src="{a}" alt="{a}"></td></tr>\n'
+
+        # render results table with plots
+        rendered_template = render_template(template_dir, 'benchmark-results-plot.html', contents)
+        with open(results_dir / (run_type + '.html'), 'w') as html_file:
+            html_file.write(rendered_template)
