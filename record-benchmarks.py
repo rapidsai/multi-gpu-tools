@@ -258,7 +258,6 @@ if __name__ == '__main__':
             file_name = plot.name
             benchmark_name = file_name[:-4]
             a = 'file://' + str(plot) # TODO: remove once testing on server
-            print(benchmark_name)
             contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><img src="{a}" alt="{a}"></td></tr>\n'
 
         # render results table with plots
