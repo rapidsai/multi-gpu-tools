@@ -257,8 +257,8 @@ if __name__ == '__main__':
         for plot in plot_dir.iterdir():
             file_name = plot.name
             benchmark_name = file_name[:-4]
-            a = 'file://' + str(plot) # TODO: remove once testing on server
-            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><img src="{a}" alt="{a}"></td></tr>\n'
+            image_path = f'plots/{run_type}/{file_name}'
+            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><img src="{image_path}" alt="{image_path}"></td></tr>\n'
 
         # render results table with plots
         rendered_template = render_template(template_dir, 'benchmark-results-plot.html', contents)
