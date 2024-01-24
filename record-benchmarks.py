@@ -1,4 +1,4 @@
-# Copyright (c) 2023, NVIDIA CORPORATION.
+# Copyright (c) 2024, NVIDIA CORPORATION.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -126,11 +126,18 @@ def write_metadata():
     with open(results_dir / 'meta.yaml', 'w+') as file:
         yaml.dump(meta, file, sort_keys=False)
 
+def remove_path_prefix(df):
+    """Remove the './' prefix from df columns"""
+    y_cols = df.columns.drop(["date"])
+    for col in y_cols:
+        newname = col[2:]
+        df.rename(columns={col: newname}, inplace=True)
+    return df
+
 
 def plot_benchmark_results(path, dest):
     """
     Reads the results and processes them inside a DF for plotting purposes.
-    - The './' prefix is stripped from benchmark names
     - Remove invalid dtypes
     - Convert all columns except 'date' to floats
     Then, generate individual plots of each nightly benchmark result and save them as an image.
@@ -141,10 +148,7 @@ def plot_benchmark_results(path, dest):
     """
     df = pd.read_csv(path, sep=',')
     x_col = 'date'
-    y_cols = df.columns.drop(["date"])
-    for col in y_cols:
-        newname = col[2:]
-        df.rename(columns={col: newname}, inplace=True)
+    df = remove_path_prefix(df)
 
     save_path = Path(dest)
     if not save_path.exists():
@@ -160,18 +164,19 @@ def plot_benchmark_results(path, dest):
         df[y_col].replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
         df[y_col] = df[y_col].astype(float)
 
-        plt_size = (40,4)
+        plt_size = (30,4)
         plt.figure(figsize=plt_size)
-        plt.plot(df[x_col], df[y_col], marker='.', markersize=8)
+        plt.plot(df[x_col], df[y_col], marker='.', linewidth=3, markersize=14)
 
         if red_ranges:
             for start, end in red_ranges:
-                plt.axvspan(start, end, facecolor='red', alpha=0.15)
+                plt.axvspan(start, end, facecolor='#e0243a', alpha=0.4)
         if yellow_ranges:
             for start, end in yellow_ranges:
-                plt.axvspan(start, end, facecolor='orange', alpha=0.15)
+                plt.axvspan(start, end, facecolor='#e09b24', alpha=0.4)
 
         plt.xticks([])
+        plt.rc('ytick', labelsize=18)
         plt.grid(True, linestyle='--', color='gray', alpha=0.1)
         plt.tight_layout()
         plt.savefig(save_path / (y_col + '.jpg'), dpi=300)
@@ -202,7 +207,7 @@ def render_template(template_dir, name, contents):
 
 ################################################################################
 
-# call __main__ function
+# call __main__
 if __name__ == '__main__':
     args = get_args()
 
@@ -218,27 +223,27 @@ if __name__ == '__main__':
 
     # RECORD NIGHTLY RESULTS
     # TODO: UNCOMMENT
-    # for run in all_benchmark_runs:
-    #     run_type = Path(run).name
-    #     results_file = bench_dir / run_type / 'pytest-results.txt'
-    #     output_file = results_dir / (run_type + ".csv")
+    for run in all_benchmark_runs:
+        run_type = Path(run).name
+        results_file = bench_dir / run_type / 'pytest-results.txt'
+        output_file = results_dir / (run_type + ".csv")
         
-    #     # if previous csv files were generated, append tonight's results to the end
-    #     if output_file.exists():
-    #         existing_df = pd.read_csv(output_file)
-    #         tonight_df = pytest_results_to_df(results_file, run_date)
-    #         res = pd.concat([existing_df, tonight_df])
-    #         res.to_csv(output_file, index=False)
-    #         # FIXME: figure out a better way to store the raw .html tables or remove them completely?
-    #         # res.to_html(results_dir / (run_type + '.html'))
+        # if previous csv files were generated, append tonight's results to the end
+        if output_file.exists():
+            existing_df = pd.read_csv(output_file)
+            tonight_df = pytest_results_to_df(results_file, run_date)
+            res = pd.concat([existing_df, tonight_df])
+            res.to_csv(output_file, index=False)
+            # FIXME: figure out a better way to store the raw .html tables or remove them completely?
+            # res.to_html(results_dir / (run_type + '.html'))
 
-    #     # otherwise, create new result file for each successful run
-    #     else:
-    #         if results_file.exists():
-    #             print(f"creating a new results file for {run_type} on {run_date}")
-    #             df = pytest_results_to_df(results_file, run_date)
-    #             df.to_csv(output_file, index=False)
-    #             # df.to_html(results_dir / (run_type + '.html'), index=False)
+        # otherwise, create new result file for each successful run
+        else:
+            if results_file.exists():
+                print(f"creating a new results file for {run_type} on {run_date}")
+                df = pytest_results_to_df(results_file, run_date)
+                df.to_csv(output_file, index=False)
+                # df.to_html(results_dir / (run_type + '.html'), index=False)
 
 
     csv_files = [file for file in results_dir.iterdir() if file.is_file() and file.suffix == ".csv"]
@@ -247,18 +252,45 @@ if __name__ == '__main__':
     for file in csv_files:
         run_type = file.name[:-4]
         plot_dir = results_dir / 'plots'  / run_type
+
+        df = pd.read_csv(file)
+        last_date = df.iloc[-1]['date']
         contents = {
             'run_type': run_type,
+            'run_date': last_date,
             'table_contents': ''
         }
 
+        df = remove_path_prefix(df)
+        df = df.drop('date', axis=1).apply(pd.to_numeric, errors='coerce')
+        
+        last_row = df.iloc[-1]
+        last_30_rows = df.tail(30)
+        last_30_avg = last_30_rows.mean(numeric_only=True)
+
         plot_benchmark_results(file, plot_dir)
 
+        # start filling in the HTML table
         for plot in plot_dir.iterdir():
             file_name = plot.name
             benchmark_name = file_name[:-4]
             image_path = f'plots/{run_type}/{file_name}'
-            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><img src="{image_path}" alt="{image_path}"></td></tr>\n'
+
+            # last recorded result
+            last_res = last_row[benchmark_name]
+            if np.isnan(last_res):
+                last_res = "n/a"
+            else:
+                last_res = round(float(last_res), 4)
+            
+            # 30 day avg
+            last_30 = last_30_avg[benchmark_name]
+            if np.isnan(last_30):
+                last_30 = "n/a"
+            else:
+                last_30 = round(float(last_30), 4)
+
+            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><text>{last_res}</text></td><td><img src="{image_path}" alt="{image_path}"></td><td><text>{last_30}</text></td></tr>\n'
 
         # render results table with plots
         rendered_template = render_template(template_dir, 'benchmark-results-plot.html', contents)
