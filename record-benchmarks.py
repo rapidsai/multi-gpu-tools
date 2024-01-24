@@ -240,7 +240,6 @@ if __name__ == '__main__':
                 print(f"creating a new results file for {run_type} on {run_date}")
                 df = pytest_results_to_df(results_file, run_date)
                 df.to_csv(output_file, index=False)
-                # df.to_html(results_dir / (run_type + '.html'), index=False)
 
 
     csv_files = [file for file in results_dir.iterdir() if file.is_file() and file.suffix == ".csv"]
@@ -270,6 +269,9 @@ if __name__ == '__main__':
         # start filling in the HTML table
         for plot in plot_dir.iterdir():
             file_name = plot.name
+            if not file_name.endswith('.jpg'):
+                continue # skip the .html file
+
             benchmark_name = file_name[:-4]
             image_path = f'plots/{run_type}/{file_name}'
 
