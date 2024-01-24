@@ -222,7 +222,6 @@ if __name__ == '__main__':
     all_benchmark_runs = glob.glob(str(bench_dir) + '/*-GPU')
 
     # RECORD NIGHTLY RESULTS
-    # TODO: UNCOMMENT
     for run in all_benchmark_runs:
         run_type = Path(run).name
         results_file = bench_dir / run_type / 'pytest-results.txt'
@@ -234,8 +233,6 @@ if __name__ == '__main__':
             tonight_df = pytest_results_to_df(results_file, run_date)
             res = pd.concat([existing_df, tonight_df])
             res.to_csv(output_file, index=False)
-            # FIXME: figure out a better way to store the raw .html tables or remove them completely?
-            # res.to_html(results_dir / (run_type + '.html'))
 
         # otherwise, create new result file for each successful run
         else:
