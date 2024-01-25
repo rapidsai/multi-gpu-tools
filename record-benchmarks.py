@@ -289,7 +289,7 @@ if __name__ == '__main__':
             else:
                 last_30 = round(float(last_30), 4)
 
-            contents['table_contents'] += f'<tr><td><text>{benchmark_name}</text></td><td><text>{last_res}</text></td><td><img src="{image_path}" alt="{image_path}"></td><td><text>{last_30}</text></td></tr>\n'
+            contents['table_contents'] += f'<tr><td><text>{benchmark_name}<br>{last_res}<br>{last_30}</text></td><td><img src="{image_path}" alt="{image_path}"></td></tr>\n'
 
         # render results table with plots
         rendered_template = render_template(template_dir, 'benchmark-results-plot.html', contents)
