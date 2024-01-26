@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import argparse
+from datetime import datetime
 import glob
 from itertools import groupby
 import math
@@ -250,10 +251,11 @@ if __name__ == '__main__':
         plot_dir = results_dir / 'plots'  / run_type
 
         df = pd.read_csv(file)
-        last_date = df.iloc[-1]['date']
+        date_format = '%Y%m%d_%H%M%S_UTC'
+        last_date = datetime.strptime(df.iloc[-1]['date'], date_format) 
         contents = {
             'run_type': run_type,
-            'run_date': last_date,
+            'run_date': last_date.strftime('%m-%d-%Y %H:%M:%S UTC'),
             'table_contents': ''
         }
 
@@ -266,7 +268,7 @@ if __name__ == '__main__':
 
         plot_benchmark_results(file, plot_dir)
 
-        # start filling in the HTML table
+        # start filling in the HTML table with all the generated plots
         for plot in plot_dir.iterdir():
             file_name = plot.name
             if not file_name.endswith('.jpg'):
