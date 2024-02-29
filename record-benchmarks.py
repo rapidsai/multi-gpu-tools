@@ -127,11 +127,6 @@ def write_metadata():
     with open(results_dir / 'meta.yaml', 'w+') as file:
         yaml.dump(meta, file, sort_keys=False)
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 0c098c2 (Address deprecation warning for pandas 3.0 changes)
 def remove_path_prefix(df):
     """Remove the './' prefix from df columns"""
     y_cols = df.columns.drop(["date"])
@@ -210,10 +205,6 @@ def render_template(template_dir, name, contents):
 
     return rendered_content
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> 0c098c2 (Address deprecation warning for pandas 3.0 changes)
 
 ################################################################################
 
