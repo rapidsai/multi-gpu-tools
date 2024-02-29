@@ -127,6 +127,11 @@ def write_metadata():
     with open(results_dir / 'meta.yaml', 'w+') as file:
         yaml.dump(meta, file, sort_keys=False)
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> 0c098c2 (Address deprecation warning for pandas 3.0 changes)
 def remove_path_prefix(df):
     """Remove the './' prefix from df columns"""
     y_cols = df.columns.drop(["date"])
@@ -162,7 +167,7 @@ def plot_benchmark_results(path, dest):
         red_ranges = _group_integers_into_ranges(failed_rows)
         yellow_ranges = _group_integers_into_ranges(skipped_rows)
 
-        df[y_col].replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
+        df[y_col] = df[y_col].where(~df[y_col].isin(['SKIPPED', 'FAILED']), np.nan)
         df[y_col] = df[y_col].astype(float)
 
         plt_size = (30,4)
@@ -205,6 +210,10 @@ def render_template(template_dir, name, contents):
 
     return rendered_content
 
+<<<<<<< HEAD
+=======
+>>>>>>> Stashed changes
+>>>>>>> 0c098c2 (Address deprecation warning for pandas 3.0 changes)
 
 ################################################################################
 
