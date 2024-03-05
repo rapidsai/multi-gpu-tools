@@ -179,7 +179,7 @@ def plot_benchmark_results(path, dest):
         plt.xticks([])
         plt.rc('ytick', labelsize=18)
         plt.grid(True, linestyle='--', color='gray', alpha=0.1)
-        plt.tight_layout()
+        plt.tight_layout(pad=1.75)
         plt.savefig(save_path / (y_col + '.jpg'), dpi=300)
         plt.close()
 
