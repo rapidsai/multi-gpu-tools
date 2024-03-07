@@ -162,7 +162,7 @@ def plot_benchmark_results(path, dest):
         red_ranges = _group_integers_into_ranges(failed_rows)
         yellow_ranges = _group_integers_into_ranges(skipped_rows)
 
-        df[y_col].replace(['SKIPPED', 'FAILED'], [np.nan, np.nan], inplace=True)
+        df[y_col] = df[y_col].where(~df[y_col].isin(['SKIPPED', 'FAILED']), np.nan)
         df[y_col] = df[y_col].astype(float)
 
         plt_size = (30,4)
@@ -179,7 +179,7 @@ def plot_benchmark_results(path, dest):
         plt.xticks([])
         plt.rc('ytick', labelsize=18)
         plt.grid(True, linestyle='--', color='gray', alpha=0.1)
-        plt.tight_layout()
+        plt.tight_layout(pad=1.75)
         plt.savefig(save_path / (y_col + '.jpg'), dpi=300)
         plt.close()
 
