@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021-2023, NVIDIA CORPORATION.
+# Copyright (c) 2024, NVIDIA CORPORATION.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -30,33 +30,23 @@ elif (( ($from_conda && $from_pip) == 1 )); then
 fi
 
 package_list=$(echo $packages | sed 's/,/ /g')
-
 if (( $from_conda == 1 )); then
     for package in $package_list; do
-	PACKAGE=$(echo $package | sed 's/[a-z]/\U&/g')
-	# output format is: name version build channel
-	conda_output=$(conda list | grep "^${package}")
-	echo "${PACKAGE}_VERSION=$(echo $conda_output | awk '{print $2}')"
-	echo "${PACKAGE}_BUILD=$(echo $conda_output | awk '{print $3}')"
-	echo "${PACKAGE}_CHANNEL=$(echo $conda_output | awk '{print $4}')"
+        PACKAGE=$(echo $package | sed 's/[a-z]/\U&/g')
+        # output format is: name version build channel
+        conda_output=$(conda list | grep "^${package}")
+        echo "${PACKAGE}_VERSION=$(echo $conda_output | awk '{print $2}')"
+        echo "${PACKAGE}_BUILD=$(echo $conda_output | awk '{print $3}')"
+        echo "${PACKAGE}_CHANNEL=$(echo $conda_output | awk '{print $4}')"
     done
-
-# elif (( $from_source == 1 )); then
-#     # FIXME: this assumes the sources are always in
-#     # ${WORKSPACE}/${REPO_DIR_NAME}. That should be the default and a
-#     # --source-dir option should be added to override.
-#     PROJECT_VERSION=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse HEAD)
-#     PROJECT_REPO_URL=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git config --get remote.origin.url)
-#     PROJECT_REPO_BRANCH=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git rev-parse --abbrev-ref HEAD)
-#     PROJECT_REPO_TIME=$(cd ${WORKSPACE}/${REPO_DIR_NAME}; git log -n1 --pretty='%ct' ${PROJECT_VERSION})
-
-else
-    # FIXME: write this
-    pip_output=$(pip list)
+elif (( $from_pip == 1 )); then
     for package in $package_list; do
-	PACKAGE=$(echo $package | sed 's/[a-z]/\U&/g')
-	echo "${PACKAGE}_VERSION=FIXME-for-pip"
-	echo "${PACKAGE}_BUILD=FIXME-for-pip"
-	echo "${PACKAGE}_CHANNEL=FIXME-for-pip"
+        pip_list_output=$(pip list | grep "^${package}" | head -n 1)
+        pip_pkg_name=$(echo $pip_list_output | awk '{print $1}')
+        pip_pkg_ver=$(echo $pip_list_output | awk '{print $2}')
+        PACKAGE=$(echo $pip_pkg_name | sed 's/[a-z]/\U&/g')
+        echo "${PACKAGE}_VERSION=${pip_pkg_ver}"
     done
+# else
+# TODO: can add --from-source option here
 fi
