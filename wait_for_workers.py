@@ -1,4 +1,4 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.
+# Copyright (c) 2021-2024, NVIDIA CORPORATION.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,7 +17,11 @@ import time
 import yaml
 
 from dask.distributed import Client
+from datetime import datetime
 
+def _get_current_time():
+    now = datetime.utcnow()
+    return now.strftime("%m/%d/%y-%H:%M:%S.") + f"{now.microsecond:06d}_UTC"
 
 def initialize_dask_cuda(communication_type):
     communication_type = communication_type.lower()
@@ -42,7 +46,7 @@ def wait_for_workers(
     # FIXME: use scheduler file path from global environment if none
     # supplied in configuration yaml
 
-    print("wait_for_workers.py - initializing client...", end="")
+    print(f"{_get_current_time()} -- wait_for_workers.py - initializing client...", end="")
     sys.stdout.flush()
     initialize_dask_cuda(communication_type)
     print("done.")
@@ -53,7 +57,7 @@ def wait_for_workers(
     while not ready:
         if timeout_after and ((time.time() - start_time) >= timeout_after):
             print(
-                f"wait_for_workers.py timed out after {timeout_after} seconds before finding {num_expected_workers} workers."
+                f"{_get_current_time()} --wait_for_workers.py timed out after {timeout_after} seconds before finding {num_expected_workers} workers."
             )
             sys.stdout.flush()
             break
@@ -61,12 +65,12 @@ def wait_for_workers(
             num_workers = len(client.scheduler_info()["workers"])
             if num_workers < num_expected_workers:
                 print(
-                    f"wait_for_workers.py expected {num_expected_workers} but got {num_workers}, waiting..."
+                    f"{_get_current_time()} --wait_for_workers.py expected {num_expected_workers} but got {num_workers}, waiting..."
                 )
                 sys.stdout.flush()
                 time.sleep(5)
             else:
-                print(f"wait_for_workers.py got {num_workers} workers, done.")
+                print(f"{_get_current_time()} --wait_for_workers.py got {num_workers} workers, done.")
                 sys.stdout.flush()
                 ready = True
 
